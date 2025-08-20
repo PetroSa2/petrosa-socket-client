@@ -75,6 +75,9 @@ WORKDIR /app
 # Copy application code
 COPY --chown=appuser:appuser . .
 
+# Install the package in development mode
+RUN pip install -e .
+
 # Create necessary directories
 RUN mkdir -p logs tmp && \
     chown -R appuser:appuser /app
