@@ -29,7 +29,6 @@ spec:
         image: yurisa2/petrosa-socket-client:VERSION_PLACEHOLDER
         imagePullPolicy: Always
         command:
-        - opentelemetry-instrument
         - python
         - -m
         - socket_client.main

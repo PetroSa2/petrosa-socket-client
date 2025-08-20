@@ -2,7 +2,7 @@
 # WebSocket and messaging functionality
 
 # WebSocket client
-websockets>=12.0
+websockets==11.0.3
 
 # NATS messaging
 nats-py>=2.0.0

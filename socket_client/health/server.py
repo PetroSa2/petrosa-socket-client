@@ -73,21 +73,21 @@ class HealthServer:
         try:
             uptime = time.time() - self.start_time
 
-            health_data = HealthMessage(
-                status="healthy",
-                uptime=uptime,
-                service="socket-client",
-                version="1.0.0",
-                metrics={
+            health_data = {
+                "status": "healthy",
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "service": "socket-client",
+                "version": "1.0.0",
+                "uptime": uptime,
+                "metrics": {
                     "uptime_seconds": uptime,
                     "start_time": datetime.fromtimestamp(self.start_time).isoformat(),
                 },
-            )
+            }
 
             return web.json_response(
-                health_data.dict(),
+                health_data,
                 status=200,
-                headers={"Content-Type": "application/json"},
             )
 
         except Exception as e:
@@ -95,7 +95,6 @@ class HealthServer:
             return web.json_response(
                 {"status": "unhealthy", "error": str(e)},
                 status=503,
-                headers={"Content-Type": "application/json"},
             )
 
     async def ready_check(self, request: web.Request) -> web.Response:
@@ -119,7 +118,7 @@ class HealthServer:
             }
 
             return web.json_response(
-                ready_data, status=200, headers={"Content-Type": "application/json"}
+                ready_data, status=200
             )
 
         except Exception as e:
@@ -127,7 +126,6 @@ class HealthServer:
             return web.json_response(
                 {"status": "not_ready", "error": str(e)},
                 status=503,
-                headers={"Content-Type": "application/json"},
             )
 
     async def metrics(self, request: web.Request) -> web.Response:
@@ -156,7 +154,7 @@ class HealthServer:
             }
 
             return web.json_response(
-                metrics_data, status=200, headers={"Content-Type": "application/json"}
+                metrics_data, status=200
             )
 
         except Exception as e:
@@ -164,7 +162,6 @@ class HealthServer:
             return web.json_response(
                 {"error": str(e)},
                 status=500,
-                headers={"Content-Type": "application/json"},
             )
 
     async def root(self, request: web.Request) -> web.Response:
@@ -183,7 +180,7 @@ class HealthServer:
             }
 
             return web.json_response(
-                info_data, status=200, headers={"Content-Type": "application/json"}
+                info_data, status=200
             )
 
         except Exception as e:
@@ -191,7 +188,6 @@ class HealthServer:
             return web.json_response(
                 {"error": str(e)},
                 status=500,
-                headers={"Content-Type": "application/json"},
             )
 
     def _get_memory_usage(self) -> float:
