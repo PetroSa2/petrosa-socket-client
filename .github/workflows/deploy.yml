@@ -87,7 +87,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor
+        images: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-socket-client
         tags: |
           type=raw,value=${{ steps.version.outputs.version }}
     - name: Build and Push Docker Image
@@ -131,12 +131,12 @@ jobs:
         find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|VERSION_PLACEHOLDER|${IMAGE_TAG}|g"
     - name: Apply Kubernetes Manifests
       run: |
-        kubectl apply -f k8s/ --recursive --insecure-skip-tls-verify
+        kubectl apply -f k8s/ --recursive --insecure-skip-tls-verify --validate=false
     - name: Deployment Summary
       run: |
         IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
         echo "🎉 Deployment to MicroK8s completed successfully!"
-        echo "  ✅ Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${IMAGE_TAG}"
+        echo "  ✅ Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-socket-client:${IMAGE_TAG}"
         echo "  ✅ Kubernetes manifests applied to MicroK8s cluster"
 
   notify:

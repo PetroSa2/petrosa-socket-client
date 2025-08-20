@@ -187,7 +187,7 @@ deploy:
 	@echo "☸️  Deploying to Kubernetes..."
 	@echo "Setting kubeconfig..."
 	export KUBECONFIG=k8s/kubeconfig.yaml
-	kubectl apply -f k8s/ --recursive
+	kubectl apply --insecure-skip-tls-verify --validate=false -f k8s/ --recursive
 	@echo "✅ Deployment completed!"
 
 pipeline:
@@ -222,16 +222,16 @@ pipeline:
 # Kubernetes utilities
 k8s-status:
 	@echo "📊 Kubernetes deployment status:"
-	kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -n petrosa-apps -l app=socket-client
-	kubectl --kubeconfig=k8s/kubeconfig.yaml get svc -n petrosa-apps -l app=socket-client
+	kubectl --kubeconfig=k8s/kubeconfig.yaml --insecure-skip-tls-verify get pods -n petrosa-apps -l app=socket-client
+	kubectl --kubeconfig=k8s/kubeconfig.yaml --insecure-skip-tls-verify get svc -n petrosa-apps -l app=socket-client
 
 k8s-logs:
 	@echo "📋 Kubernetes logs:"
-	kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps -l app=socket-client --tail=50
+	kubectl --kubeconfig=k8s/kubeconfig.yaml --insecure-skip-tls-verify logs -n petrosa-apps -l app=socket-client --tail=50
 
 k8s-clean:
 	@echo "🧹 Cleaning up Kubernetes resources..."
-	kubectl --kubeconfig=k8s/kubeconfig.yaml delete namespace petrosa-apps 2>/dev/null || true
+	kubectl --kubeconfig=k8s/kubeconfig.yaml --insecure-skip-tls-verify delete namespace petrosa-apps 2>/dev/null || true
 
 # Local development
 run-local:
