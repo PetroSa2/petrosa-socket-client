@@ -12,8 +12,6 @@ from typing import Optional
 from aiohttp import web
 from structlog import get_logger
 
-from socket_client.models.message import HealthMessage
-
 logger = get_logger(__name__)
 
 
