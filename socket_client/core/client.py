@@ -172,7 +172,7 @@ class BinanceWebSocketClient:
                 ping_timeout=self.ping_timeout,
                 close_timeout=constants.WEBSOCKET_CLOSE_TIMEOUT,
             )
-            
+
             # Get the actual connection from the context manager
             self.websocket = await connect.__aenter__()
 

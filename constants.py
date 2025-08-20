@@ -5,7 +5,6 @@ NATS configuration, and streaming settings.
 """
 
 import os
-from typing import List
 
 from dotenv import load_dotenv
 
@@ -27,7 +26,7 @@ DEFAULT_STREAMS = [
 ]
 
 # Parse streams from environment variable
-def get_streams() -> List[str]:
+def get_streams() -> list[str]:
     """Get streams from environment variable or use defaults."""
     streams_env = os.getenv("BINANCE_STREAMS")
     if streams_env:

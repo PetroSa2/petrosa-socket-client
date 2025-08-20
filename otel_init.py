@@ -8,17 +8,17 @@ and monitoring of the WebSocket client service.
 import os
 from typing import Optional
 
-from opentelemetry import trace, metrics
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.sdk.resources import Resource
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.urllib3 import URLLib3Instrumentor
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
 def setup_telemetry(
@@ -31,7 +31,7 @@ def setup_telemetry(
 ) -> None:
     """
     Set up OpenTelemetry instrumentation.
-    
+
     Args:
         service_name: Name of the service
         service_version: Version of the service
@@ -46,7 +46,7 @@ def setup_telemetry(
     enable_metrics = enable_metrics and os.getenv("ENABLE_METRICS", "true").lower() in ("true", "1", "yes")
     enable_traces = enable_traces and os.getenv("ENABLE_TRACES", "true").lower() in ("true", "1", "yes")
     enable_logs = enable_logs and os.getenv("ENABLE_LOGS", "true").lower() in ("true", "1", "yes")
-    
+
     # Create resource attributes
     resource_attributes = {
         "service.name": service_name,
@@ -54,7 +54,7 @@ def setup_telemetry(
         "service.instance.id": os.getenv("HOSTNAME", "unknown"),
         "deployment.environment": os.getenv("ENVIRONMENT", "production"),
     }
-    
+
     # Add custom resource attributes if provided
     custom_attributes = os.getenv("OTEL_RESOURCE_ATTRIBUTES")
     if custom_attributes:
@@ -62,32 +62,32 @@ def setup_telemetry(
             if "=" in attr:
                 key, value = attr.split("=", 1)
                 resource_attributes[key.strip()] = value.strip()
-    
+
     resource = Resource.create(resource_attributes)
-    
+
     # Set up tracing if enabled
     if enable_traces and otlp_endpoint:
         try:
             # Create tracer provider
             tracer_provider = TracerProvider(resource=resource)
-            
+
             # Create OTLP exporter
             otlp_exporter = OTLPSpanExporter(
                 endpoint=otlp_endpoint,
                 headers=os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "").split(",") if os.getenv("OTEL_EXPORTER_OTLP_HEADERS") else None
             )
-            
+
             # Add batch processor
             tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
-            
+
             # Set global tracer provider
             trace.set_tracer_provider(tracer_provider)
-            
+
             print(f"✅ OpenTelemetry tracing enabled for {service_name}")
-            
+
         except Exception as e:
             print(f"⚠️  Failed to set up OpenTelemetry tracing: {e}")
-    
+
     # Set up metrics if enabled
     if enable_metrics and otlp_endpoint:
         try:
@@ -99,18 +99,18 @@ def setup_telemetry(
                 ),
                 export_interval_millis=int(os.getenv("OTEL_METRIC_EXPORT_INTERVAL", "60000"))
             )
-            
+
             # Create meter provider
             meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
-            
+
             # Set global meter provider
             metrics.set_meter_provider(meter_provider)
-            
+
             print(f"✅ OpenTelemetry metrics enabled for {service_name}")
-            
+
         except Exception as e:
             print(f"⚠️  Failed to set up OpenTelemetry metrics: {e}")
-    
+
     # Set up logging instrumentation if enabled
     if enable_logs:
         try:
@@ -119,29 +119,29 @@ def setup_telemetry(
                 log_level=os.getenv("LOG_LEVEL", "INFO")
             )
             print(f"✅ OpenTelemetry logging enabled for {service_name}")
-            
+
         except Exception as e:
             print(f"⚠️  Failed to set up OpenTelemetry logging: {e}")
-    
+
     # Set up HTTP instrumentation
     try:
         RequestsInstrumentor().instrument()
         URLLib3Instrumentor().instrument()
         print(f"✅ OpenTelemetry HTTP instrumentation enabled for {service_name}")
-        
+
     except Exception as e:
         print(f"⚠️  Failed to set up OpenTelemetry HTTP instrumentation: {e}")
-    
+
     print(f"🚀 OpenTelemetry setup completed for {service_name} v{service_version}")
 
 
 def get_tracer(name: str = None) -> trace.Tracer:
     """
     Get a tracer instance.
-    
+
     Args:
         name: Tracer name
-        
+
     Returns:
         Tracer instance
     """
@@ -151,10 +151,10 @@ def get_tracer(name: str = None) -> trace.Tracer:
 def get_meter(name: str = None) -> metrics.Meter:
     """
     Get a meter instance.
-    
+
     Args:
         name: Meter name
-        
+
     Returns:
         Meter instance
     """
