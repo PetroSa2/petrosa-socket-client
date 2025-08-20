@@ -10,7 +10,7 @@ metadata:
     version: VERSION_PLACEHOLDER
 data:
   # Binance WebSocket configuration
-  BINANCE_WS_URL: "wss://stream.binance.com:9443"
+  BINANCE_WS_URL: "wss://stream.binance.com:9443/ws"
   BINANCE_STREAMS: "btcusdt@trade,btcusdt@ticker,btcusdt@depth20@100ms,ethusdt@trade,ethusdt@ticker,ethusdt@depth20@100ms"
   
   # NATS configuration

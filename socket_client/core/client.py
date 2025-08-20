@@ -70,7 +70,7 @@ class BinanceWebSocketClient:
         self.ping_timeout = ping_timeout or constants.WEBSOCKET_PING_TIMEOUT
 
         # Connection state
-        self.websocket: Optional[websockets.WebSocketServerProtocol] = None
+        self.websocket: Optional[websockets.WebSocketClientProtocol] = None
         self.nats_client: Optional[NATSClient] = None
         self.is_connected = False
         self.is_running = False
@@ -143,7 +143,10 @@ class BinanceWebSocketClient:
 
         # Close connections
         if self.websocket:
-            await self.websocket.close()
+            try:
+                await self.websocket.close()
+            except Exception as e:
+                self.logger.warning(f"Error closing WebSocket: {e}")
 
         if self.nats_client:
             await self.nats_client.close()
@@ -162,13 +165,16 @@ class BinanceWebSocketClient:
             }
 
             # Connect with circuit breaker protection
-            self.websocket = await websocket_circuit_breaker.call(
+            connect = await websocket_circuit_breaker.call(
                 websockets.connect,
                 self.ws_url,
                 ping_interval=self.ping_interval,
                 ping_timeout=self.ping_timeout,
                 close_timeout=constants.WEBSOCKET_CLOSE_TIMEOUT,
             )
+            
+            # Get the actual connection from the context manager
+            self.websocket = await connect.__aenter__()
 
             # Send subscription message
             await self.websocket.send(json.dumps(subscribe_message))
