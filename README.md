@@ -404,3 +404,4 @@ For support and questions:
 - [Petrosa TA Bot](https://github.com/petrosa/petrosa-bot-ta-analysis) - Technical analysis bot
 - [Petrosa Trade Engine](https://github.com/petrosa/petrosa-tradeengine) - Trading engine
 - [Petrosa Data Extractor](https://github.com/petrosa/petrosa-binance-data-extractor) - Historical data extraction
+# Trigger deployment with updated kubeconfig
