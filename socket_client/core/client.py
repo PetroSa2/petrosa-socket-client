@@ -269,14 +269,20 @@ class BinanceWebSocketClient:
     async def _process_single_message(self, data: dict):
         """Process a single message."""
         try:
-            # Validate message format
-            if not isinstance(data, dict) or "stream" not in data or "data" not in data:
-                self.logger.warning("Invalid message format", data=data)
+            # Validate message format - Binance WebSocket messages come as direct JSON objects
+            if not isinstance(data, dict):
+                self.logger.warning("Invalid message format - not a dictionary", data=data)
+                return
+
+            # Determine stream name from message type
+            stream_name = self._determine_stream_name(data)
+            if not stream_name:
+                self.logger.warning("Could not determine stream name", data=data)
                 return
 
             # Create message object
             message = create_message(
-                stream=data["stream"], data=data["data"], message_id=str(uuid.uuid4())
+                stream=stream_name, data=data, message_id=str(uuid.uuid4())
             )
 
             # Publish to NATS
@@ -303,6 +309,59 @@ class BinanceWebSocketClient:
 
         except Exception as e:
             self.logger.error(f"Error processing single message: {e}")
+
+    def _determine_stream_name(self, data: dict) -> Optional[str]:
+        """
+        Determine stream name from message data.
+        
+        Args:
+            data: Message data from Binance WebSocket
+            
+        Returns:
+            Stream name or None if cannot determine
+        """
+        try:
+            # Get event type and symbol from message
+            event_type = data.get("e", "")
+            symbol = data.get("s", "")
+            
+            # Handle depth updates (order book data)
+            if "lastUpdateId" in data and "bids" in data and "asks" in data:
+                # This is a depth update message
+                if symbol:
+                    return f"{symbol.lower()}@depth20@100ms"
+                else:
+                    # Try to determine symbol from the data structure
+                    # For depth updates, we need to infer the symbol from context
+                    # Since we're subscribed to specific streams, we can use the first stream
+                    if self.streams:
+                        # Extract symbol from the first stream (e.g., "btcusdt@depth20@100ms" -> "btcusdt")
+                        first_stream = self.streams[0]
+                        if "@" in first_stream:
+                            symbol = first_stream.split("@")[0]
+                            return f"{symbol}@depth20@100ms"
+            
+            if not event_type or not symbol:
+                return None
+                
+            # Map event types to stream names
+            if event_type == "trade":
+                return f"{symbol.lower()}@trade"
+            elif event_type == "24hrTicker":
+                return f"{symbol.lower()}@ticker"
+            elif event_type == "depthUpdate":
+                return f"{symbol.lower()}@depth20@100ms"
+            elif event_type == "markPriceUpdate":
+                return f"{symbol.lower()}@markPrice@1s"
+            elif event_type == "fundingRate":
+                return f"{symbol.lower()}@fundingRate@1s"
+            else:
+                # For unknown event types, create a generic stream name
+                return f"{symbol.lower()}@{event_type}"
+                
+        except Exception as e:
+            self.logger.error(f"Error determining stream name: {e}")
+            return None
 
     async def _ping_loop(self):
         """Send periodic pings to keep connection alive."""
