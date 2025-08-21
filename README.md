@@ -405,3 +405,4 @@ For support and questions:
 - [Petrosa Trade Engine](https://github.com/petrosa/petrosa-tradeengine) - Trading engine
 - [Petrosa Data Extractor](https://github.com/petrosa/petrosa-binance-data-extractor) - Historical data extraction
 # Trigger deployment with updated kubeconfig
+# Test deployment with updated kubeconfig
