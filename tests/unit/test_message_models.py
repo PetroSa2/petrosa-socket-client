@@ -16,6 +16,7 @@ from socket_client.models.message import (
 )
 
 
+@pytest.mark.unit
 class TestWebSocketMessage:
     """Test WebSocket message model."""
 
@@ -65,6 +66,7 @@ class TestWebSocketMessage:
         assert parsed["data"] == {"price": "50000"}
 
 
+@pytest.mark.unit
 class TestTradeMessage:
     """Test trade message model."""
 
@@ -91,6 +93,7 @@ class TestTradeMessage:
         assert message.data["e"] == "trade"
 
 
+@pytest.mark.unit
 class TestTickerMessage:
     """Test ticker message model."""
 
@@ -111,6 +114,7 @@ class TestTickerMessage:
         assert message.data["e"] == "24hrTicker"
 
 
+@pytest.mark.unit
 class TestDepthMessage:
     """Test depth message model."""
 
@@ -133,6 +137,7 @@ class TestDepthMessage:
         assert message.data["e"] == "depthUpdate"
 
 
+@pytest.mark.unit
 class TestCreateMessage:
     """Test message creation factory function."""
 
@@ -169,6 +174,7 @@ class TestCreateMessage:
         assert message.stream == "unknown@stream"
 
 
+@pytest.mark.unit
 class TestValidateMessage:
     """Test message validation."""
 
