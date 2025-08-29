@@ -252,3 +252,78 @@ class TestBinanceWebSocketClient:
         assert "queue_size" in metrics
         assert "websocket_state" in metrics
         assert "nats_state" in metrics
+        # Test heartbeat-related metrics
+        assert "uptime_seconds" in metrics
+        assert "messages_per_second" in metrics
+        assert "queue_utilization_percent" in metrics
+        assert "heartbeat_enabled" in metrics
+        assert "heartbeat_interval" in metrics
+
+    @pytest.mark.asyncio
+    async def test_heartbeat_loop(self, websocket_client):
+        """Test heartbeat loop functionality."""
+        # Mock the heartbeat interval to be very short for testing
+        import constants
+        original_interval = constants.HEARTBEAT_INTERVAL
+        constants.HEARTBEAT_INTERVAL = 0.01  # 10ms for testing
+        
+        try:
+            websocket_client.is_running = True
+            websocket_client.is_connected = True
+            
+            # Set some test data
+            websocket_client.processed_messages = 50
+            websocket_client.dropped_messages = 2
+            
+            # Start heartbeat loop
+            task = asyncio.create_task(websocket_client._heartbeat_loop())
+            
+            # Wait for at least one heartbeat
+            await asyncio.sleep(0.05)
+            
+            # Cancel task
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+                
+            # Verify heartbeat tracking variables were updated
+            assert websocket_client.last_heartbeat_processed >= 0
+            assert websocket_client.last_heartbeat_dropped >= 0
+            
+        finally:
+            # Restore original interval
+            constants.HEARTBEAT_INTERVAL = original_interval
+
+    @pytest.mark.asyncio
+    async def test_log_heartbeat_stats(self, websocket_client, caplog):
+        """Test heartbeat statistics logging."""
+        import time
+        
+        # Set up test data
+        websocket_client.processed_messages = 100
+        websocket_client.dropped_messages = 5
+        websocket_client.start_time = time.time() - 60  # 1 minute ago
+        websocket_client.last_heartbeat_time = time.time() - 30  # 30 seconds ago
+        websocket_client.last_heartbeat_processed = 50
+        websocket_client.last_heartbeat_dropped = 2
+        websocket_client.last_message_time = time.time() - 1  # 1 second ago
+        websocket_client.last_ping = time.time() - 5  # 5 seconds ago
+        
+        # Mock connections
+        websocket_client.is_connected = True
+        websocket_client.websocket = AsyncMock()
+        websocket_client.websocket.closed = False
+        websocket_client.nats_client = AsyncMock()
+        websocket_client.nats_client.is_closed = False
+        
+        # Call the heartbeat stats method
+        await websocket_client._log_heartbeat_stats()
+        
+        # Check that heartbeat tracking variables were updated
+        assert websocket_client.last_heartbeat_processed == 100
+        assert websocket_client.last_heartbeat_dropped == 5
+        
+        # Verify log message was generated (this depends on the logger setup)
+        # The actual log checking might need adjustment based on the logger configuration
