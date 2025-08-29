@@ -58,12 +58,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: petrosa-common-config
-                  key: log-level
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
                 configMapKeyRef:
                   name: petrosa-common-config
-                  key: environment
+                  key: ENVIRONMENT
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
