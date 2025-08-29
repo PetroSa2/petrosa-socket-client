@@ -11,6 +11,7 @@ import pytest
 from socket_client.core.client import BinanceWebSocketClient
 
 
+@pytest.mark.unit
 class TestBinanceWebSocketClient:
     """Test WebSocket client functionality."""
 
