@@ -83,11 +83,18 @@ class BinanceWebSocketClient:
         self.dropped_messages = 0
         self.last_message_time = 0
 
+        # Heartbeat statistics
+        self.start_time = time.time()
+        self.last_heartbeat_time = time.time()
+        self.last_heartbeat_processed = 0
+        self.last_heartbeat_dropped = 0
+
         # Tasks
         self.websocket_task: Optional[asyncio.Task] = None
         self.nats_task: Optional[asyncio.Task] = None
         self.processor_task: Optional[asyncio.Task] = None
         self.ping_task: Optional[asyncio.Task] = None
+        self.heartbeat_task: Optional[asyncio.Task] = None
 
         self.logger.info(
             "WebSocket client initialized",
@@ -95,6 +102,8 @@ class BinanceWebSocketClient:
             streams=streams,
             nats_url=nats_url,
             nats_topic=nats_topic,
+            heartbeat_enabled=constants.ENABLE_HEARTBEAT,
+            heartbeat_interval=constants.HEARTBEAT_INTERVAL if constants.ENABLE_HEARTBEAT else None,
         )
 
     async def start(self):
@@ -115,6 +124,10 @@ class BinanceWebSocketClient:
             # Start ping task
             self.ping_task = asyncio.create_task(self._ping_loop())
 
+            # Start heartbeat task if enabled
+            if constants.ENABLE_HEARTBEAT:
+                self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+
             self.logger.info("WebSocket client started successfully")
 
         except Exception as e:
@@ -133,6 +146,7 @@ class BinanceWebSocketClient:
             self.nats_task,
             self.processor_task,
             self.ping_task,
+            self.heartbeat_task,
         ]:
             if task and not task.done():
                 task.cancel()
@@ -377,6 +391,91 @@ class BinanceWebSocketClient:
                 self.logger.error(f"Ping error: {e}")
                 break
 
+    async def _heartbeat_loop(self):
+        """Send periodic heartbeat logs with message processing statistics."""
+        while self.is_running:
+            try:
+                await asyncio.sleep(constants.HEARTBEAT_INTERVAL)
+                
+                if not self.is_running:
+                    break
+                    
+                await self._log_heartbeat_stats()
+                
+            except Exception as e:
+                self.logger.error(f"Heartbeat error: {e}")
+                break
+
+    async def _log_heartbeat_stats(self):
+        """Log heartbeat statistics."""
+        current_time = time.time()
+        time_since_last_heartbeat = current_time - self.last_heartbeat_time
+        time_since_start = current_time - self.start_time
+        
+        # Calculate messages processed since last heartbeat
+        messages_processed_since_last = self.processed_messages - self.last_heartbeat_processed
+        messages_dropped_since_last = self.dropped_messages - self.last_heartbeat_dropped
+        
+        # Calculate rates
+        messages_per_second = (
+            messages_processed_since_last / time_since_last_heartbeat
+            if time_since_last_heartbeat > 0 else 0
+        )
+        
+        overall_messages_per_second = (
+            self.processed_messages / time_since_start
+            if time_since_start > 0 else 0
+        )
+        
+        # Calculate queue utilization percentage
+        queue_utilization = (
+            (self.message_queue.qsize() / constants.MAX_QUEUE_SIZE) * 100
+            if constants.MAX_QUEUE_SIZE > 0 else 0
+        )
+        
+        # Time since last message received
+        time_since_last_message = (
+            current_time - self.last_message_time
+            if self.last_message_time > 0 else 0
+        )
+        
+        # Log comprehensive heartbeat statistics
+        self.logger.info(
+            "HEARTBEAT: WebSocket Client Statistics",
+            # Connection status
+            connection_status=self.is_connected,
+            websocket_state="connected" if self.websocket and not self.websocket.closed else "disconnected",
+            nats_state="connected" if self.nats_client and not self.nats_client.is_closed else "disconnected",
+            
+            # Message processing stats since last heartbeat
+            messages_processed_since_last=messages_processed_since_last,
+            messages_dropped_since_last=messages_dropped_since_last,
+            messages_per_second=round(messages_per_second, 2),
+            
+            # Overall stats since start
+            total_processed=self.processed_messages,
+            total_dropped=self.dropped_messages,
+            overall_rate_per_second=round(overall_messages_per_second, 2),
+            
+            # Queue and timing info
+            queue_size=self.message_queue.qsize(),
+            queue_utilization_percent=round(queue_utilization, 2),
+            time_since_last_message_seconds=round(time_since_last_message, 2),
+            
+            # Uptime and intervals
+            uptime_seconds=round(time_since_start, 2),
+            heartbeat_interval_seconds=constants.HEARTBEAT_INTERVAL,
+            
+            # Connection health
+            reconnect_attempts=self.reconnect_attempts,
+            last_ping_seconds_ago=round(current_time - self.last_ping, 2) if self.last_ping > 0 else None,
+        )
+        
+        # Update heartbeat tracking variables
+        self.last_heartbeat_time = current_time
+        self.last_heartbeat_processed = self.processed_messages
+        self.last_heartbeat_dropped = self.dropped_messages
+
     async def _handle_disconnection(self):
         """Handle WebSocket disconnection with reconnection logic."""
         if not self.is_running:
@@ -409,6 +508,9 @@ class BinanceWebSocketClient:
 
     def get_metrics(self) -> dict:
         """Get client metrics."""
+        current_time = time.time()
+        uptime = current_time - self.start_time
+        
         return {
             "is_connected": self.is_connected,
             "is_running": self.is_running,
@@ -424,4 +526,13 @@ class BinanceWebSocketClient:
             "nats_state": "connected"
             if self.nats_client and not self.nats_client.is_closed
             else "disconnected",
+            # Heartbeat-related metrics
+            "uptime_seconds": round(uptime, 2),
+            "messages_per_second": round(self.processed_messages / uptime, 2) if uptime > 0 else 0,
+            "queue_utilization_percent": round(
+                (self.message_queue.qsize() / constants.MAX_QUEUE_SIZE) * 100, 2
+            ) if constants.MAX_QUEUE_SIZE > 0 else 0,
+            "time_since_last_message": round(current_time - self.last_message_time, 2) if self.last_message_time > 0 else None,
+            "heartbeat_enabled": constants.ENABLE_HEARTBEAT,
+            "heartbeat_interval": constants.HEARTBEAT_INTERVAL,
         }

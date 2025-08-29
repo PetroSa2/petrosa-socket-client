@@ -94,6 +94,10 @@ RETRY_BACKOFF_MULTIPLIER = float(os.getenv("RETRY_BACKOFF_MULTIPLIER", "2.0"))
 ENABLE_METRICS = os.getenv("ENABLE_METRICS", "true").lower() in ("true", "1", "yes")
 METRICS_INTERVAL = int(os.getenv("METRICS_INTERVAL", "60"))
 
+# Heartbeat settings
+HEARTBEAT_INTERVAL = int(os.getenv("HEARTBEAT_INTERVAL", "30"))  # seconds
+ENABLE_HEARTBEAT = os.getenv("ENABLE_HEARTBEAT", "true").lower() in ("true", "1", "yes")
+
 # Message validation
 ENABLE_MESSAGE_VALIDATION = os.getenv("ENABLE_MESSAGE_VALIDATION", "true").lower() in ("true", "1", "yes")
 REQUIRED_MESSAGE_FIELDS = ["stream", "data", "timestamp"]
