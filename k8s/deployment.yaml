@@ -26,12 +26,15 @@ spec:
           image: yurisa2/petrosa-socket-client:VERSION_PLACEHOLDER
           imagePullPolicy: Always
           command:
+            - opentelemetry-instrument
             - python
             - '-m'
             - socket_client.main
           args:
             - run
           env:
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
             - name: BINANCE_WS_URL
               valueFrom:
                 configMapKeyRef:
