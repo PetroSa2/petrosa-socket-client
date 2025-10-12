@@ -10,9 +10,33 @@ from datetime import datetime
 from typing import Optional
 
 from aiohttp import web
+from prometheus_client import Counter, Gauge, generate_latest
 from structlog import get_logger
 
 logger = get_logger(__name__)
+
+# Prometheus metrics
+WEBSOCKET_CONNECTED = Gauge(
+    "websocket_connected", "WebSocket connection status (1=connected, 0=disconnected)"
+)
+WEBSOCKET_MESSAGES_PROCESSED = Counter(
+    "websocket_messages_processed_total", "Total WebSocket messages processed"
+)
+WEBSOCKET_MESSAGES_DROPPED = Counter(
+    "websocket_messages_dropped_total", "Total WebSocket messages dropped"
+)
+WEBSOCKET_RECONNECT_ATTEMPTS = Counter(
+    "websocket_reconnect_attempts_total", "Total WebSocket reconnection attempts"
+)
+NATS_CONNECTED = Gauge(
+    "nats_connected", "NATS connection status (1=connected, 0=disconnected)"
+)
+NATS_MESSAGES_PUBLISHED = Counter(
+    "nats_messages_published_total", "Total messages published to NATS"
+)
+SERVICE_UPTIME = Gauge("service_uptime_seconds", "Service uptime in seconds")
+MEMORY_USAGE = Gauge("memory_usage_bytes", "Memory usage in bytes")
+CPU_USAGE = Gauge("cpu_usage_percent", "CPU usage percentage")
 
 
 class HealthServer:
@@ -115,9 +139,7 @@ class HealthServer:
                 },
             }
 
-            return web.json_response(
-                ready_data, status=200
-            )
+            return web.json_response(ready_data, status=200)
 
         except Exception as e:
             self.logger.error(f"Ready check failed: {e}")
@@ -127,40 +149,30 @@ class HealthServer:
             )
 
     async def metrics(self, request: web.Request) -> web.Response:
-        """Metrics endpoint for monitoring."""
+        """Metrics endpoint for Prometheus monitoring."""
         try:
+            # Update gauge metrics with current values
             uptime = time.time() - self.start_time
+            SERVICE_UPTIME.set(uptime)
 
-            metrics_data = {
-                "service": "socket-client",
-                "version": "1.0.0",
-                "uptime_seconds": uptime,
-                "start_time": datetime.fromtimestamp(self.start_time).isoformat(),
-                "current_time": datetime.utcnow().isoformat() + "Z",
-                "memory_usage_mb": self._get_memory_usage(),
-                "cpu_usage_percent": self._get_cpu_usage(),
-                "websocket_metrics": {
-                    "is_connected": False,  # This would be dynamic
-                    "reconnect_attempts": 0,  # This would be dynamic
-                    "processed_messages": 0,  # This would be dynamic
-                    "dropped_messages": 0,  # This would be dynamic
-                },
-                "nats_metrics": {
-                    "is_connected": False,  # This would be dynamic
-                    "published_messages": 0,  # This would be dynamic
-                },
-            }
+            memory_mb = self._get_memory_usage()
+            MEMORY_USAGE.set(memory_mb * 1024 * 1024)  # Convert MB to bytes
 
-            return web.json_response(
-                metrics_data, status=200
+            cpu = self._get_cpu_usage()
+            CPU_USAGE.set(cpu)
+
+            # Generate Prometheus-format metrics
+            metrics_output = generate_latest()
+
+            return web.Response(
+                body=metrics_output,
+                headers={"Content-Type": "text/plain; version=0.0.4; charset=utf-8"},
+                status=200,
             )
 
         except Exception as e:
             self.logger.error(f"Metrics endpoint failed: {e}")
-            return web.json_response(
-                {"error": str(e)},
-                status=500,
-            )
+            return web.Response(text=f"# Error generating metrics: {e}\n", status=500)
 
     async def root(self, request: web.Request) -> web.Response:
         """Root endpoint with service information."""
@@ -177,9 +189,7 @@ class HealthServer:
                 "documentation": "https://github.com/petrosa/petrosa-socket-client",
             }
 
-            return web.json_response(
-                info_data, status=200
-            )
+            return web.json_response(info_data, status=200)
 
         except Exception as e:
             self.logger.error(f"Root endpoint failed: {e}")
