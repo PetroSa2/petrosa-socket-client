@@ -35,12 +35,16 @@ spec:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: nats
-  # Allow connection to OpenTelemetry collector
+  # Allow connection to OpenTelemetry collector (Grafana Alloy)
   - ports:
     - port: 4317
       protocol: TCP
-    - port: 14250
+    - port: 4318
       protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: observability
   # Allow connection to health check endpoints within the cluster
   - ports:
     - port: 8080

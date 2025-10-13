@@ -14,6 +14,14 @@ from structlog import get_logger
 
 logger = get_logger(__name__)
 
+# Instrument aiohttp for OpenTelemetry traces
+try:
+    from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
+    AioHttpClientInstrumentor().instrument()
+    logger.info("✅ aiohttp client instrumented for OpenTelemetry traces")
+except Exception as e:
+    logger.warning(f"⚠️  Could not instrument aiohttp client: {e}")
+
 
 class HealthServer:
     """HTTP server for health checks and monitoring."""
@@ -32,6 +40,15 @@ class HealthServer:
         self.runner: Optional[web.AppRunner] = None
         self.site: Optional[web.TCPSite] = None
         self.start_time = time.time()
+
+        # Instrument aiohttp server for OpenTelemetry traces
+        try:
+            from opentelemetry import trace
+            from opentelemetry.instrumentation.aiohttp_server import AioHttpServerInstrumentor
+            AioHttpServerInstrumentor().instrument(server=self.app)
+            self.logger.info("✅ aiohttp server instrumented for OpenTelemetry traces")
+        except Exception as e:
+            self.logger.warning(f"⚠️  Could not instrument aiohttp server: {e}")
 
         # Setup routes
         self.app.router.add_get("/healthz", self.health_check)
