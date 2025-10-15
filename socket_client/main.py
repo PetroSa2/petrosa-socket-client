@@ -26,10 +26,12 @@ from socket_client.utils.logger import setup_logging  # noqa: E402
 
 # Initialize OpenTelemetry as early as possible
 try:
-    from otel_init import setup_telemetry  # noqa: E402
+    import otel_init  # noqa: E402
 
     if not os.getenv("OTEL_NO_AUTO_INIT"):
-        setup_telemetry(service_name=constants.OTEL_SERVICE_NAME)
+        otel_init.setup_telemetry(service_name=constants.OTEL_SERVICE_NAME)
+        # Attach OTLP logging handler for log export
+        otel_init.attach_logging_handler_simple()
 except ImportError:
     pass
 
