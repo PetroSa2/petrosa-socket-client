@@ -5,20 +5,28 @@ This module sets up OpenTelemetry instrumentation for observability
 and monitoring of the WebSocket client service.
 """
 
+import logging
 import os
 from typing import Optional
 
 from opentelemetry import metrics, trace
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.urllib3 import URLLib3Instrumentor
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+# Global logger provider for attaching handlers
+_global_logger_provider = None
+_otlp_logging_handler = None
 
 
 def setup_telemetry(
@@ -133,17 +141,41 @@ def setup_telemetry(
         except Exception as e:
             print(f"⚠️  Failed to set up OpenTelemetry metrics: {e}")
 
-    # Set up logging instrumentation if enabled
-    if enable_logs:
+    # Set up logging export via OTLP if enabled
+    if enable_logs and otlp_endpoint:
+        global _global_logger_provider
         try:
-            LoggingInstrumentor().instrument(
-                set_logging_format=True,
-                log_level=os.getenv("LOG_LEVEL", "INFO")
+            # Enrich logs with trace context
+            # set_logging_format=False to avoid clearing existing handlers
+            LoggingInstrumentor().instrument(set_logging_format=False)
+
+            # Parse log headers
+            log_headers_env = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
+            log_headers: dict[str, str] | None = None
+            if log_headers_env:
+                log_headers_list = [
+                    tuple(h.split("=", 1))
+                    for h in log_headers_env.split(",")
+                    if "=" in h
+                ]
+                log_headers = dict(log_headers_list)
+
+            log_exporter = OTLPLogExporter(
+                endpoint=otlp_endpoint,
+                headers=log_headers,
             )
-            print(f"✅ OpenTelemetry logging enabled for {service_name}")
+
+            logger_provider = LoggerProvider(resource=resource)
+            logger_provider.add_log_record_processor(
+                BatchLogRecordProcessor(log_exporter)
+            )
+            _global_logger_provider = logger_provider
+
+            print(f"✅ OpenTelemetry logging export configured for {service_name}")
+            print("   Note: Call attach_logging_handler_simple() in main() to activate")
 
         except Exception as e:
-            print(f"⚠️  Failed to set up OpenTelemetry logging: {e}")
+            print(f"⚠️  Failed to set up OpenTelemetry logging export: {e}")
 
     # Set up HTTP instrumentation
     try:
@@ -155,6 +187,49 @@ def setup_telemetry(
         print(f"⚠️  Failed to set up OpenTelemetry HTTP instrumentation: {e}")
 
     print(f"🚀 OpenTelemetry setup completed for {service_name} v{service_version}")
+
+
+def attach_logging_handler_simple():
+    """
+    Attach OTLP logging handler to root logger.
+
+    For async services without Uvicorn (WebSocket clients, NATS listeners, CLI jobs).
+    This attaches the OTLP handler to the root logger only.
+
+    Call this in main() after setup_telemetry() to activate log export.
+    """
+    global _global_logger_provider, _otlp_logging_handler
+
+    if _global_logger_provider is None:
+        print("⚠️  Logger provider not configured - logging export not available")
+        return False
+
+    try:
+        root_logger = logging.getLogger()
+
+        # Check if handler already attached
+        if _otlp_logging_handler is not None:
+            if _otlp_logging_handler in root_logger.handlers:
+                print("✅ OTLP logging handler already attached")
+                return True
+
+        # Create and attach handler
+        handler = LoggingHandler(
+            level=logging.NOTSET,
+            logger_provider=_global_logger_provider,
+        )
+
+        root_logger.addHandler(handler)
+        _otlp_logging_handler = handler
+
+        print("✅ OTLP logging handler attached to root logger")
+        print(f"   Total handlers: {len(root_logger.handlers)}")
+
+        return True
+
+    except Exception as e:
+        print(f"⚠️  Failed to attach logging handler: {e}")
+        return False
 
 
 def get_tracer(name: str = None) -> trace.Tracer:
