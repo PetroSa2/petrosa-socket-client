@@ -63,10 +63,9 @@ petrosa-socket-client/
 │   ├── e2e/               # End-to-end tests
 │   └── conftest.py        # Test configuration
 ├── k8s/                   # Kubernetes manifests
-│   ├── deployment.yaml    # Main deployment
+│   ├── deployment.yaml    # Main deployment (single replica, vertical scaling)
 │   ├── service.yaml       # Service definition
 │   ├── configmap.yaml     # Configuration
-│   ├── hpa.yaml          # Horizontal Pod Autoscaler
 │   └── ingress.yaml      # Ingress configuration
 ├── scripts/               # Automation scripts
 │   └── test-local.sh     # Local testing script
@@ -259,9 +258,9 @@ make coverage
 ## ☸️ Kubernetes
 
 ### Deployment Features
-- **3 Replicas**: High availability
+- **Single Replica**: One instance only (WebSocket client design)
+- **Vertical Scaling**: Increased resource limits (2Gi memory, 1 CPU)
 - **Health Checks**: Liveness and readiness probes
-- **Auto-scaling**: HPA based on CPU and memory
 - **Resource Limits**: Memory and CPU constraints
 - **Security**: Non-root user and read-only filesystem
 

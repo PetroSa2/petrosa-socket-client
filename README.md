@@ -203,11 +203,13 @@ The Dockerfile uses multi-stage builds for optimized production images:
 
 The service is deployed to Kubernetes with:
 
-- **3 Replicas**: High availability
+- **Single Replica**: One instance only (WebSocket client should not be horizontally scaled)
+- **Vertical Scaling**: Increased resource limits (2Gi memory, 1 CPU)
 - **Health Checks**: Liveness and readiness probes
-- **Auto-scaling**: HPA based on CPU and memory
 - **Resource Limits**: Memory and CPU constraints
 - **Security**: Non-root user and read-only filesystem
+
+> **Note**: This service uses a single replica because it's a WebSocket client that connects to Binance and forwards data to NATS. Multiple replicas would duplicate the same data stream, creating unnecessary load. Use vertical scaling (increase resource limits) instead of horizontal scaling.
 
 ### Monitoring
 
