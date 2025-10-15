@@ -53,7 +53,6 @@ The version comes from:
 - `k8s/deployment.yaml`
 - `k8s/service.yaml`
 - `k8s/ingress.yaml`
-- `k8s/hpa.yaml`
 - `k8s/network-policy.yaml`
 
 ### Project-Specific Files

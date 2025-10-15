@@ -55,7 +55,6 @@ make version-debug
 - `k8s/deployment.yaml`
 - `k8s/service.yaml`
 - `k8s/ingress.yaml`
-- `k8s/hpa.yaml`
 - `k8s/network-policy.yaml`
 - `k8s/configmap.yaml`
 - `k8s/common-configmap.yaml`

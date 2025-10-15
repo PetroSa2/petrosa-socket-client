@@ -8,7 +8,7 @@ metadata:
     component: websocket-client
     version: VERSION_PLACEHOLDER
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: socket-client
@@ -127,11 +127,11 @@ spec:
               protocol: TCP
           resources:
             requests:
-              memory: 256Mi
-              cpu: 100m
-            limits:
               memory: 512Mi
-              cpu: 500m
+              cpu: 200m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
           livenessProbe:
             httpGet:
               path: /healthz
