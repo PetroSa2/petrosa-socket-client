@@ -47,13 +47,20 @@ class SocketClientService:
         """Initialize the service."""
         self.logger = setup_logging(level=constants.LOG_LEVEL)
 
-        # Attach OTLP logging handler AFTER setup_logging() configures logging
+        # Set up OpenTelemetry and attach OTLP logging handler AFTER setup_logging()
         # This ensures the handler survives any logging reconfiguration
         try:
             import otel_init
+            # Call setup_telemetry explicitly since OTEL_NO_AUTO_INIT=1 prevents auto-setup
+            otel_init.setup_telemetry(
+                service_name=constants.OTEL_SERVICE_NAME,
+                service_version=constants.OTEL_SERVICE_VERSION,
+                otlp_endpoint=constants.OTEL_EXPORTER_OTLP_ENDPOINT
+            )
+            # Attach the OTLP logging handler to the root logger
             otel_init.attach_logging_handler_simple()
         except Exception as e:
-            print(f"⚠️  Failed to attach OTLP handler: {e}")
+            print(f"⚠️  Failed to set up OTLP: {e}")
 
         self.websocket_client: Optional[BinanceWebSocketClient] = None
         self.health_server: Optional[HealthServer] = None
