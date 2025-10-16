@@ -46,7 +46,7 @@ class SocketClientService:
     def __init__(self):
         """Initialize the service."""
         self.logger = setup_logging(level=constants.LOG_LEVEL)
-        
+
         # Attach OTLP logging handler AFTER setup_logging() configures logging
         # This ensures the handler survives any logging reconfiguration
         try:
@@ -54,7 +54,7 @@ class SocketClientService:
             otel_init.attach_logging_handler_simple()
         except Exception as e:
             print(f"⚠️  Failed to attach OTLP handler: {e}")
-        
+
         self.websocket_client: Optional[BinanceWebSocketClient] = None
         self.health_server: Optional[HealthServer] = None
         self.shutdown_event = asyncio.Event()
