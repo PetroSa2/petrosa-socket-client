@@ -74,6 +74,21 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: ENABLE_OTEL
+            - name: ENABLE_LOGS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_LOGS
+            - name: ENABLE_METRICS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_METRICS
+            - name: ENABLE_TRACES
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_TRACES
             - name: OTEL_SERVICE_VERSION
               valueFrom:
                 configMapKeyRef:
