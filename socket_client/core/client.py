@@ -89,10 +89,13 @@ class BinanceWebSocketClient:
         self.last_heartbeat_processed = 0
         self.last_heartbeat_dropped = 0
 
+        # Parallel processing
+        self.num_processors = constants.NUM_MESSAGE_PROCESSORS
+
         # Tasks
         self.websocket_task: Optional[asyncio.Task] = None
         self.nats_task: Optional[asyncio.Task] = None
-        self.processor_task: Optional[asyncio.Task] = None
+        self.processor_tasks: list[asyncio.Task] = []
         self.ping_task: Optional[asyncio.Task] = None
         self.heartbeat_task: Optional[asyncio.Task] = None
 
@@ -102,8 +105,12 @@ class BinanceWebSocketClient:
             streams=streams,
             nats_url=nats_url,
             nats_topic=nats_topic,
+            num_processors=self.num_processors,
+            max_queue_size=constants.MAX_QUEUE_SIZE,
             heartbeat_enabled=constants.ENABLE_HEARTBEAT,
-            heartbeat_interval=constants.HEARTBEAT_INTERVAL if constants.ENABLE_HEARTBEAT else None,
+            heartbeat_interval=constants.HEARTBEAT_INTERVAL
+            if constants.ENABLE_HEARTBEAT
+            else None,
         )
 
     async def start(self):
@@ -115,8 +122,15 @@ class BinanceWebSocketClient:
             # Start NATS connection
             await self._connect_nats()
 
-            # Start message processor
-            self.processor_task = asyncio.create_task(self._process_messages())
+            # Start multiple message processors for parallel processing
+            for i in range(self.num_processors):
+                task = asyncio.create_task(self._process_messages(worker_id=i))
+                self.processor_tasks.append(task)
+
+            self.logger.info(
+                "Started parallel message processors",
+                num_processors=self.num_processors,
+            )
 
             # Start WebSocket connection
             await self._connect_websocket()
@@ -141,13 +155,14 @@ class BinanceWebSocketClient:
         self.is_running = False
 
         # Cancel tasks
-        for task in [
+        tasks_to_cancel = [
             self.websocket_task,
             self.nats_task,
-            self.processor_task,
             self.ping_task,
             self.heartbeat_task,
-        ]:
+        ] + self.processor_tasks
+
+        for task in tasks_to_cancel:
             if task and not task.done():
                 task.cancel()
                 try:
@@ -258,8 +273,15 @@ class BinanceWebSocketClient:
             self.is_connected = False
             await self._handle_disconnection()
 
-    async def _process_messages(self):
-        """Process messages from the queue and publish to NATS."""
+    async def _process_messages(self, worker_id: int = 0):
+        """
+        Process messages from the queue and publish to NATS.
+
+        Args:
+            worker_id: ID of this worker for logging/debugging
+        """
+        self.logger.info(f"Message processor worker {worker_id} started")
+
         while self.is_running:
             try:
                 # Get message from queue with timeout
@@ -278,14 +300,21 @@ class BinanceWebSocketClient:
                 self.message_queue.task_done()
 
             except Exception as e:
-                self.logger.error(f"Error processing message: {e}")
+                self.logger.error(
+                    f"Error processing message in worker {worker_id}: {e}",
+                    worker_id=worker_id,
+                )
+
+        self.logger.info(f"Message processor worker {worker_id} stopped")
 
     async def _process_single_message(self, data: dict):
         """Process a single message."""
         try:
             # Validate message format - Binance WebSocket messages come as direct JSON objects
             if not isinstance(data, dict):
-                self.logger.warning("Invalid message format - not a dictionary", data=data)
+                self.logger.warning(
+                    "Invalid message format - not a dictionary", data=data
+                )
                 return
 
             # Determine stream name from message type
@@ -327,10 +356,10 @@ class BinanceWebSocketClient:
     def _determine_stream_name(self, data: dict) -> Optional[str]:
         """
         Determine stream name from message data.
-        
+
         Args:
             data: Message data from Binance WebSocket
-            
+
         Returns:
             Stream name or None if cannot determine
         """
@@ -338,7 +367,7 @@ class BinanceWebSocketClient:
             # Get event type and symbol from message
             event_type = data.get("e", "")
             symbol = data.get("s", "")
-            
+
             # Handle depth updates (order book data)
             if "lastUpdateId" in data and "bids" in data and "asks" in data:
                 # This is a depth update message
@@ -354,10 +383,10 @@ class BinanceWebSocketClient:
                         if "@" in first_stream:
                             symbol = first_stream.split("@")[0]
                             return f"{symbol}@depth20@100ms"
-            
+
             if not event_type or not symbol:
                 return None
-                
+
             # Map event types to stream names
             if event_type == "trade":
                 return f"{symbol.lower()}@trade"
@@ -372,7 +401,7 @@ class BinanceWebSocketClient:
             else:
                 # For unknown event types, create a generic stream name
                 return f"{symbol.lower()}@{event_type}"
-                
+
         except Exception as e:
             self.logger.error(f"Error determining stream name: {e}")
             return None
@@ -396,12 +425,12 @@ class BinanceWebSocketClient:
         while self.is_running:
             try:
                 await asyncio.sleep(constants.HEARTBEAT_INTERVAL)
-                
+
                 if not self.is_running:
                     break
-                    
+
                 await self._log_heartbeat_stats()
-                
+
             except Exception as e:
                 self.logger.error(f"Heartbeat error: {e}")
                 break
@@ -411,66 +440,71 @@ class BinanceWebSocketClient:
         current_time = time.time()
         time_since_last_heartbeat = current_time - self.last_heartbeat_time
         time_since_start = current_time - self.start_time
-        
+
         # Calculate messages processed since last heartbeat
-        messages_processed_since_last = self.processed_messages - self.last_heartbeat_processed
-        messages_dropped_since_last = self.dropped_messages - self.last_heartbeat_dropped
-        
+        messages_processed_since_last = (
+            self.processed_messages - self.last_heartbeat_processed
+        )
+        messages_dropped_since_last = (
+            self.dropped_messages - self.last_heartbeat_dropped
+        )
+
         # Calculate rates
         messages_per_second = (
             messages_processed_since_last / time_since_last_heartbeat
-            if time_since_last_heartbeat > 0 else 0
+            if time_since_last_heartbeat > 0
+            else 0
         )
-        
+
         overall_messages_per_second = (
-            self.processed_messages / time_since_start
-            if time_since_start > 0 else 0
+            self.processed_messages / time_since_start if time_since_start > 0 else 0
         )
-        
+
         # Calculate queue utilization percentage
         queue_utilization = (
             (self.message_queue.qsize() / constants.MAX_QUEUE_SIZE) * 100
-            if constants.MAX_QUEUE_SIZE > 0 else 0
+            if constants.MAX_QUEUE_SIZE > 0
+            else 0
         )
-        
+
         # Time since last message received
         time_since_last_message = (
-            current_time - self.last_message_time
-            if self.last_message_time > 0 else 0
+            current_time - self.last_message_time if self.last_message_time > 0 else 0
         )
-        
+
         # Log comprehensive heartbeat statistics
         self.logger.info(
             "HEARTBEAT: WebSocket Client Statistics",
             # Connection status
             connection_status=self.is_connected,
-            websocket_state="connected" if self.websocket and not self.websocket.closed else "disconnected",
-            nats_state="connected" if self.nats_client and not self.nats_client.is_closed else "disconnected",
-            
+            websocket_state="connected"
+            if self.websocket and not self.websocket.closed
+            else "disconnected",
+            nats_state="connected"
+            if self.nats_client and not self.nats_client.is_closed
+            else "disconnected",
             # Message processing stats since last heartbeat
             messages_processed_since_last=messages_processed_since_last,
             messages_dropped_since_last=messages_dropped_since_last,
             messages_per_second=round(messages_per_second, 2),
-            
             # Overall stats since start
             total_processed=self.processed_messages,
             total_dropped=self.dropped_messages,
             overall_rate_per_second=round(overall_messages_per_second, 2),
-            
             # Queue and timing info
             queue_size=self.message_queue.qsize(),
             queue_utilization_percent=round(queue_utilization, 2),
             time_since_last_message_seconds=round(time_since_last_message, 2),
-            
             # Uptime and intervals
             uptime_seconds=round(time_since_start, 2),
             heartbeat_interval_seconds=constants.HEARTBEAT_INTERVAL,
-            
             # Connection health
             reconnect_attempts=self.reconnect_attempts,
-            last_ping_seconds_ago=round(current_time - self.last_ping, 2) if self.last_ping > 0 else None,
+            last_ping_seconds_ago=round(current_time - self.last_ping, 2)
+            if self.last_ping > 0
+            else None,
         )
-        
+
         # Update heartbeat tracking variables
         self.last_heartbeat_time = current_time
         self.last_heartbeat_processed = self.processed_messages
@@ -510,7 +544,7 @@ class BinanceWebSocketClient:
         """Get client metrics."""
         current_time = time.time()
         uptime = current_time - self.start_time
-        
+
         return {
             "is_connected": self.is_connected,
             "is_running": self.is_running,
@@ -528,11 +562,17 @@ class BinanceWebSocketClient:
             else "disconnected",
             # Heartbeat-related metrics
             "uptime_seconds": round(uptime, 2),
-            "messages_per_second": round(self.processed_messages / uptime, 2) if uptime > 0 else 0,
+            "messages_per_second": round(self.processed_messages / uptime, 2)
+            if uptime > 0
+            else 0,
             "queue_utilization_percent": round(
                 (self.message_queue.qsize() / constants.MAX_QUEUE_SIZE) * 100, 2
-            ) if constants.MAX_QUEUE_SIZE > 0 else 0,
-            "time_since_last_message": round(current_time - self.last_message_time, 2) if self.last_message_time > 0 else None,
+            )
+            if constants.MAX_QUEUE_SIZE > 0
+            else 0,
+            "time_since_last_message": round(current_time - self.last_message_time, 2)
+            if self.last_message_time > 0
+            else None,
             "heartbeat_enabled": constants.ENABLE_HEARTBEAT,
             "heartbeat_interval": constants.HEARTBEAT_INTERVAL,
         }

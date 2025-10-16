@@ -32,7 +32,10 @@ data:
   # Resource limits
   MAX_MEMORY_MB: "500"
   MAX_CONCURRENT_CONNECTIONS: "10"
-  MAX_QUEUE_SIZE: "1000"
+  MAX_QUEUE_SIZE: "5000"
+  
+  # Parallel processing
+  NUM_MESSAGE_PROCESSORS: "5"
   
   # Circuit breaker settings
   CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
