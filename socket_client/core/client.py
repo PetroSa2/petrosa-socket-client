@@ -88,6 +88,10 @@ class BinanceWebSocketClient:
         self.last_heartbeat_time = time.time()
         self.last_heartbeat_processed = 0
         self.last_heartbeat_dropped = 0
+        
+        # Message processing stats logging throttle
+        self.last_stats_log_time = time.time()
+        self.stats_log_interval = 60  # Log message stats at most once per minute
 
         # Parallel processing
         self.num_processors = constants.NUM_MESSAGE_PROCESSORS
@@ -337,12 +341,18 @@ class BinanceWebSocketClient:
 
                     self.processed_messages += 1
 
-                    if self.processed_messages % 100 == 0:
+                    # Log stats at most once per minute instead of every 100 messages
+                    current_time = time.time()
+                    if current_time - self.last_stats_log_time >= self.stats_log_interval:
                         self.logger.info(
                             "Message processing stats",
                             processed=self.processed_messages,
                             dropped=self.dropped_messages,
+                            messages_per_second=round(
+                                self.processed_messages / (current_time - self.start_time), 2
+                            ) if (current_time - self.start_time) > 0 else 0,
                         )
+                        self.last_stats_log_time = current_time
 
                 except Exception as e:
                     self.logger.error(f"Failed to publish to NATS: {e}")
