@@ -37,8 +37,6 @@ spec:
           args:
             - run
           env:
-            - name: OTEL_NO_AUTO_INIT
-              value: "1"
             - name: BINANCE_WS_URL
               valueFrom:
                 configMapKeyRef:
