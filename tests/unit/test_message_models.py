@@ -392,4 +392,61 @@ class TestTraceContextFallback:
         assert "timestamp" in nats_message
 
         # Should NOT have trace context (library not available)
-        # The actual behavior depends on the implementation
+        assert "_otel_trace_context" not in nats_message
+
+    def test_to_nats_message_with_trace_propagation_mock(self):
+        """Test that inject_trace_context is called when available (mocked)."""
+        import socket_client.models.message as message_module
+
+        # Mock the inject_trace_context function
+        def mock_inject(message):
+            message["_otel_trace_context"] = {"traceparent": "00-mock-trace-id-01"}
+            return message
+
+        # Patch both the flag and the function (use create=True for conditional import)
+        with mock.patch.object(
+            message_module, "TRACE_PROPAGATION_AVAILABLE", True
+        ), mock.patch.object(
+            message_module, "inject_trace_context", side_effect=mock_inject, create=True
+        ) as mock_inject_fn:
+            message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
+            nats_message = message.to_nats_message()
+
+            # Verify inject_trace_context was called
+            mock_inject_fn.assert_called_once()
+
+            # Verify trace context was added
+            assert "_otel_trace_context" in nats_message
+            assert (
+                nats_message["_otel_trace_context"]["traceparent"]
+                == "00-mock-trace-id-01"
+            )
+
+            # Verify all standard fields are still present
+            assert nats_message["stream"] == "btcusdt@trade"
+            assert nats_message["data"] == {"price": "50000"}
+
+    def test_to_json_with_trace_propagation_mock(self):
+        """Test that to_json() includes trace context when available (mocked)."""
+        import json
+
+        import socket_client.models.message as message_module
+
+        # Mock the inject_trace_context function
+        def mock_inject(message):
+            message["_otel_trace_context"] = {"traceparent": "00-test-trace-02"}
+            return message
+
+        # Patch both the flag and the function (use create=True for conditional import)
+        with mock.patch.object(
+            message_module, "TRACE_PROPAGATION_AVAILABLE", True
+        ), mock.patch.object(
+            message_module, "inject_trace_context", side_effect=mock_inject, create=True
+        ):
+            message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
+            json_str = message.to_json()
+
+            # Parse JSON to verify trace context is included
+            parsed = json.loads(json_str)
+            assert "_otel_trace_context" in parsed
+            assert parsed["_otel_trace_context"]["traceparent"] == "00-test-trace-02"
