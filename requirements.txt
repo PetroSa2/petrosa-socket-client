@@ -17,23 +17,11 @@ pydantic>=2.0.0,<3.0.0
 # Logging and monitoring
 structlog>=23.0.0
 
-# OpenTelemetry Core (verified working packages)
-opentelemetry-api>=1.20.0
-
-# OpenTelemetry Auto-Instrumentation
-opentelemetry-distro>=0.41b0
-opentelemetry-exporter-otlp-proto-grpc>=1.20.0
-opentelemetry-exporter-otlp-proto-http>=1.20.0
-opentelemetry-instrumentation>=0.41b0
-opentelemetry-instrumentation-logging>=0.41b0
-
-# OpenTelemetry Manual Instrumentations (verified available)
-opentelemetry-instrumentation-requests>=0.41b0
-opentelemetry-instrumentation-urllib3>=0.41b0
-opentelemetry-sdk>=1.20.0
-
-# OpenTelemetry Semantic Conventions
-opentelemetry-semantic-conventions>=0.41b0
+# OpenTelemetry (unified via petrosa-otel package)
+# For local development, install from path:
+# pip install -e ../petrosa_k8s/petrosa-otel
+# For production, this will be published to private PyPI
+petrosa-otel>=1.0.0
 
 # CLI framework
 typer>=0.9.0
