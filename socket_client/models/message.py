@@ -11,6 +11,14 @@ from typing import Any, Optional
 import orjson
 from pydantic import BaseModel, Field, validator
 
+# Try to import trace context propagation (graceful fallback if not available)
+try:
+    from petrosa_otel import inject_trace_context
+
+    TRACE_PROPAGATION_AVAILABLE = True
+except ImportError:
+    TRACE_PROPAGATION_AVAILABLE = False
+
 
 class WebSocketMessage(BaseModel):
     """Base model for WebSocket messages."""
@@ -39,8 +47,13 @@ class WebSocketMessage(BaseModel):
         return v
 
     def to_nats_message(self) -> dict[str, Any]:
-        """Convert to NATS message format."""
-        return {
+        """
+        Convert to NATS message format with trace context propagation.
+
+        This method automatically injects OpenTelemetry trace context into the
+        message, enabling distributed tracing across services that consume this data.
+        """
+        message = {
             "stream": self.stream,
             "data": self.data,
             "timestamp": self.timestamp.isoformat() + "Z",
@@ -48,6 +61,12 @@ class WebSocketMessage(BaseModel):
             "source": "binance-websocket",
             "version": "1.0",
         }
+
+        # Inject trace context for distributed tracing
+        if TRACE_PROPAGATION_AVAILABLE:
+            message = inject_trace_context(message)
+
+        return message
 
     def to_json(self) -> str:
         """Convert to JSON string."""

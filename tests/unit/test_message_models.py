@@ -3,6 +3,7 @@ Unit tests for message models.
 """
 
 from datetime import datetime
+from unittest import mock
 
 import pytest
 
@@ -14,6 +15,19 @@ from socket_client.models.message import (
     create_message,
     validate_message,
 )
+
+# Try to import trace context for testing
+try:
+    from opentelemetry import trace
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+        InMemorySpanExporter,
+    )
+
+    OTEL_AVAILABLE = True
+except ImportError:
+    OTEL_AVAILABLE = False
 
 
 @pytest.mark.unit
@@ -209,3 +223,230 @@ class TestValidateMessage:
 
         with pytest.raises(ValueError, match="Invalid message format"):
             validate_message(message_dict)
+
+
+@pytest.mark.unit
+@pytest.mark.skipif(not OTEL_AVAILABLE, reason="OpenTelemetry not available")
+class TestTraceContextPropagation:
+    """Test trace context propagation in messages."""
+
+    @pytest.fixture(scope="function")
+    def tracer_provider(self):
+        """Create a tracer provider with in-memory exporter for testing."""
+        exporter = InMemorySpanExporter()
+        provider = TracerProvider()
+        provider.add_span_processor(SimpleSpanProcessor(exporter))
+        trace.set_tracer_provider(provider)
+        return provider
+
+    @pytest.fixture(scope="function")
+    def tracer(self, tracer_provider):
+        """Get a tracer instance."""
+        return trace.get_tracer(__name__)
+
+    def test_to_nats_message_includes_trace_context(self, tracer):
+        """Test that to_nats_message() includes trace context when available."""
+        from socket_client.models.message import TRACE_PROPAGATION_AVAILABLE
+
+        if not TRACE_PROPAGATION_AVAILABLE:
+            pytest.skip("Trace propagation not available")
+
+        message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
+
+        # Create a span and generate message
+        with tracer.start_as_current_span("test_span"):
+            nats_message = message.to_nats_message()
+
+            # Should include trace context field
+            assert "_otel_trace_context" in nats_message
+            assert isinstance(nats_message["_otel_trace_context"], dict)
+
+            # Should include traceparent header
+            carrier = nats_message["_otel_trace_context"]
+            assert "traceparent" in carrier
+
+    def test_to_nats_message_without_active_span(self):
+        """Test that to_nats_message() works even without active span."""
+        from socket_client.models.message import TRACE_PROPAGATION_AVAILABLE
+
+        if not TRACE_PROPAGATION_AVAILABLE:
+            pytest.skip("Trace propagation not available")
+
+        message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
+
+        # Generate message without active span
+        nats_message = message.to_nats_message()
+
+        # Should still include trace context field (may be empty)
+        assert "_otel_trace_context" in nats_message
+
+    def test_to_nats_message_preserves_original_fields(self, tracer):
+        """Test that trace context injection preserves all original fields."""
+        from socket_client.models.message import TRACE_PROPAGATION_AVAILABLE
+
+        if not TRACE_PROPAGATION_AVAILABLE:
+            pytest.skip("Trace propagation not available")
+
+        data = {"price": "50000", "quantity": "1.5"}
+        message = WebSocketMessage(
+            stream="btcusdt@trade", data=data, message_id="test-123"
+        )
+
+        with tracer.start_as_current_span("test_span"):
+            nats_message = message.to_nats_message()
+
+            # All original fields should be present
+            assert nats_message["stream"] == "btcusdt@trade"
+            assert nats_message["data"] == data
+            assert nats_message["message_id"] == "test-123"
+            assert nats_message["source"] == "binance-websocket"
+            assert nats_message["version"] == "1.0"
+            assert "timestamp" in nats_message
+
+            # Plus trace context
+            assert "_otel_trace_context" in nats_message
+
+    def test_to_json_includes_trace_context(self, tracer):
+        """Test that to_json() includes trace context in serialized output."""
+        import json
+
+        from socket_client.models.message import TRACE_PROPAGATION_AVAILABLE
+
+        if not TRACE_PROPAGATION_AVAILABLE:
+            pytest.skip("Trace propagation not available")
+
+        message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
+
+        with tracer.start_as_current_span("test_span"):
+            json_str = message.to_json()
+            parsed = json.loads(json_str)
+
+            # Should include trace context in JSON
+            assert "_otel_trace_context" in parsed
+            assert isinstance(parsed["_otel_trace_context"], dict)
+
+    def test_trace_context_roundtrip(self, tracer):
+        """
+        Test that trace context can be round-tripped through message serialization.
+
+        This simulates the real flow:
+        1. socket-client creates message with trace context
+        2. Serializes to JSON for NATS
+        3. Consumer deserializes and extracts context
+        """
+        import json
+
+        from socket_client.models.message import TRACE_PROPAGATION_AVAILABLE
+
+        if not TRACE_PROPAGATION_AVAILABLE:
+            pytest.skip("Trace propagation not available")
+
+        try:
+            from petrosa_otel import extract_trace_context
+        except ImportError:
+            pytest.skip("petrosa_otel not available for extract")
+
+        message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
+
+        parent_trace_id = None
+
+        # Publisher side (socket-client)
+        with tracer.start_as_current_span("publisher_span") as parent_span:
+            parent_trace_id = parent_span.get_span_context().trace_id
+
+            # Serialize message (includes trace context)
+            json_str = message.to_json()
+
+        # Simulate NATS transport
+        # ...
+
+        # Consumer side (realtime-strategies)
+        nats_message = json.loads(json_str)
+        consumer_ctx = extract_trace_context(nats_message)
+
+        # Create child span with extracted context
+        with tracer.start_as_current_span(
+            "consumer_span", context=consumer_ctx
+        ) as child_span:
+            child_trace_id = child_span.get_span_context().trace_id
+
+            # Trace IDs should match!
+            assert child_trace_id == parent_trace_id
+
+
+@pytest.mark.unit
+class TestTraceContextFallback:
+    """Test that messages work even when trace propagation is not available."""
+
+    @mock.patch("socket_client.models.message.TRACE_PROPAGATION_AVAILABLE", False)
+    def test_to_nats_message_without_trace_propagation(self):
+        """Test that messages work when trace propagation library is not available."""
+        message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
+
+        # Should not raise even without trace propagation
+        nats_message = message.to_nats_message()
+
+        # Should have all standard fields
+        assert nats_message["stream"] == "btcusdt@trade"
+        assert nats_message["data"] == {"price": "50000"}
+        assert "timestamp" in nats_message
+
+        # Should NOT have trace context (library not available)
+        assert "_otel_trace_context" not in nats_message
+
+    def test_to_nats_message_with_trace_propagation_mock(self):
+        """Test that inject_trace_context is called when available (mocked)."""
+        import socket_client.models.message as message_module
+
+        # Mock the inject_trace_context function
+        def mock_inject(message):
+            message["_otel_trace_context"] = {"traceparent": "00-mock-trace-id-01"}
+            return message
+
+        # Patch both the flag and the function (use create=True for conditional import)
+        with mock.patch.object(
+            message_module, "TRACE_PROPAGATION_AVAILABLE", True
+        ), mock.patch.object(
+            message_module, "inject_trace_context", side_effect=mock_inject, create=True
+        ) as mock_inject_fn:
+            message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
+            nats_message = message.to_nats_message()
+
+            # Verify inject_trace_context was called
+            mock_inject_fn.assert_called_once()
+
+            # Verify trace context was added
+            assert "_otel_trace_context" in nats_message
+            assert (
+                nats_message["_otel_trace_context"]["traceparent"]
+                == "00-mock-trace-id-01"
+            )
+
+            # Verify all standard fields are still present
+            assert nats_message["stream"] == "btcusdt@trade"
+            assert nats_message["data"] == {"price": "50000"}
+
+    def test_to_json_with_trace_propagation_mock(self):
+        """Test that to_json() includes trace context when available (mocked)."""
+        import json
+
+        import socket_client.models.message as message_module
+
+        # Mock the inject_trace_context function
+        def mock_inject(message):
+            message["_otel_trace_context"] = {"traceparent": "00-test-trace-02"}
+            return message
+
+        # Patch both the flag and the function (use create=True for conditional import)
+        with mock.patch.object(
+            message_module, "TRACE_PROPAGATION_AVAILABLE", True
+        ), mock.patch.object(
+            message_module, "inject_trace_context", side_effect=mock_inject, create=True
+        ):
+            message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
+            json_str = message.to_json()
+
+            # Parse JSON to verify trace context is included
+            parsed = json.loads(json_str)
+            assert "_otel_trace_context" in parsed
+            assert parsed["_otel_trace_context"]["traceparent"] == "00-test-trace-02"
