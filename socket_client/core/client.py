@@ -88,7 +88,7 @@ class BinanceWebSocketClient:
         self.last_heartbeat_time = time.time()
         self.last_heartbeat_processed = 0
         self.last_heartbeat_dropped = 0
-        
+
         # Message processing stats logging throttle
         self.last_stats_log_time = time.time()
         self.stats_log_interval = 60  # Log message stats at most once per minute
@@ -343,14 +343,21 @@ class BinanceWebSocketClient:
 
                     # Log stats at most once per minute instead of every 100 messages
                     current_time = time.time()
-                    if current_time - self.last_stats_log_time >= self.stats_log_interval:
+                    if (
+                        current_time - self.last_stats_log_time
+                        >= self.stats_log_interval
+                    ):
                         self.logger.info(
                             "Message processing stats",
                             processed=self.processed_messages,
                             dropped=self.dropped_messages,
                             messages_per_second=round(
-                                self.processed_messages / (current_time - self.start_time), 2
-                            ) if (current_time - self.start_time) > 0 else 0,
+                                self.processed_messages
+                                / (current_time - self.start_time),
+                                2,
+                            )
+                            if (current_time - self.start_time) > 0
+                            else 0,
                         )
                         self.last_stats_log_time = current_time
 
@@ -529,9 +536,7 @@ class BinanceWebSocketClient:
 
         while self.is_running and self.reconnect_attempts < self.max_reconnect_attempts:
             try:
-                await asyncio.sleep(
-                    self.reconnect_delay * (2**self.reconnect_attempts)
-                )
+                await asyncio.sleep(self.reconnect_delay * (2**self.reconnect_attempts))
 
                 self.logger.info(
                     f"Attempting reconnection {self.reconnect_attempts + 1}/{self.max_reconnect_attempts}"

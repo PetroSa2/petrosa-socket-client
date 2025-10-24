@@ -32,7 +32,7 @@ class TestMessageThroughputPerformance:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
@@ -47,8 +47,8 @@ class TestMessageThroughputPerformance:
                     "t": i,
                     "p": f"{50000 + (i % 1000)}",
                     "q": "1.0",
-                    "T": int(time.time() * 1000) + i
-                }
+                    "T": int(time.time() * 1000) + i,
+                },
             }
             messages.append(json.dumps(message))
 
@@ -78,7 +78,7 @@ class TestMessageThroughputPerformance:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
@@ -87,7 +87,7 @@ class TestMessageThroughputPerformance:
         for i in range(1000):
             message = {
                 "stream": "btcusdt@trade",
-                "data": {"e": "trade", "t": i, "p": f"{50000 + i}"}
+                "data": {"e": "trade", "t": i, "p": f"{50000 + i}"},
             }
             messages.append(json.dumps(message))
 
@@ -114,14 +114,16 @@ class TestMessageThroughputPerformance:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
-        message = json.dumps({
-            "stream": "btcusdt@trade",
-            "data": {"e": "trade", "s": "BTCUSDT", "p": "50000"}
-        })
+        message = json.dumps(
+            {
+                "stream": "btcusdt@trade",
+                "data": {"e": "trade", "s": "BTCUSDT", "p": "50000"},
+            }
+        )
 
         # Measure latency for single message
         latencies = []
@@ -147,7 +149,7 @@ class TestMessageThroughputPerformance:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
@@ -156,10 +158,7 @@ class TestMessageThroughputPerformance:
 
         for batch_size in batch_sizes:
             messages = [
-                json.dumps({
-                    "stream": "btcusdt@trade",
-                    "data": {"e": "trade", "t": i}
-                })
+                json.dumps({"stream": "btcusdt@trade", "data": {"e": "trade", "t": i}})
                 for i in range(batch_size)
             ]
 
@@ -174,7 +173,9 @@ class TestMessageThroughputPerformance:
             throughput = batch_size / batch_time
 
             # Throughput should scale with batch size
-            assert throughput >= batch_size * 0.8, f"Batch {batch_size} throughput: {throughput:.2f}"
+            assert (
+                throughput >= batch_size * 0.8
+            ), f"Batch {batch_size} throughput: {throughput:.2f}"
 
 
 @pytest.mark.performance
@@ -195,22 +196,24 @@ class TestMemoryUsagePerformance:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
         # Process many messages to test memory usage
         for batch in range(10):
             messages = [
-                json.dumps({
-                    "stream": "btcusdt@trade",
-                    "data": {
-                        "e": "trade",
-                        "t": batch * 1000 + i,
-                        "p": f"{50000 + i}",
-                        "large_data": "x" * 1000  # Add some data size
+                json.dumps(
+                    {
+                        "stream": "btcusdt@trade",
+                        "data": {
+                            "e": "trade",
+                            "t": batch * 1000 + i,
+                            "p": f"{50000 + i}",
+                            "large_data": "x" * 1000,  # Add some data size
+                        },
                     }
-                })
+                )
                 for i in range(1000)
             ]
 
@@ -224,7 +227,9 @@ class TestMemoryUsagePerformance:
             memory_increase = current_memory - initial_memory
 
             # Memory should not grow excessively
-            assert memory_increase < 50, f"Memory increased by {memory_increase:.2f}MB after batch {batch}"
+            assert (
+                memory_increase < 50
+            ), f"Memory increased by {memory_increase:.2f}MB after batch {batch}"
 
     @pytest.mark.asyncio
     async def test_message_object_cleanup(self):
@@ -237,7 +242,7 @@ class TestMemoryUsagePerformance:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
@@ -245,10 +250,7 @@ class TestMemoryUsagePerformance:
         weak_refs = []
 
         for i in range(100):
-            message_data = {
-                "stream": "btcusdt@trade",
-                "data": {"e": "trade", "t": i}
-            }
+            message_data = {"stream": "btcusdt@trade", "data": {"e": "trade", "t": i}}
 
             # Create message object and track it
             msg_obj = WebSocketMessage(**message_data)
@@ -262,6 +264,7 @@ class TestMemoryUsagePerformance:
 
         # Force garbage collection
         import gc
+
         gc.collect()
 
         # Check that objects were cleaned up
@@ -283,7 +286,7 @@ class TestMemoryUsagePerformance:
                 ws_url=f"wss://test{i}.binance.com/ws",
                 streams=[f"symbol{i}@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic=f"crypto.trades{i}"
+                nats_topic=f"crypto.trades{i}",
             )
             clients.append(client)
 
@@ -296,6 +299,7 @@ class TestMemoryUsagePerformance:
         # Cleanup
         del clients
         import gc
+
         gc.collect()
 
 
@@ -306,9 +310,9 @@ class TestConnectionPerformance:
     @pytest.mark.asyncio
     async def test_connection_establishment_time(self):
         """Test WebSocket connection establishment performance."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -320,7 +324,7 @@ class TestConnectionPerformance:
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.trades"
+                nats_topic="crypto.trades",
             )
 
             # Measure connection time
@@ -338,9 +342,9 @@ class TestConnectionPerformance:
         """Test reconnection performance after failures."""
         connection_times = []
 
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -353,7 +357,7 @@ class TestConnectionPerformance:
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
                 nats_topic="crypto.trades",
-                reconnect_delay=0.1  # Fast reconnection for testing
+                reconnect_delay=0.1,  # Fast reconnection for testing
             )
 
             # Test multiple reconnections
@@ -367,14 +371,16 @@ class TestConnectionPerformance:
             avg_reconnection_time = sum(connection_times) / len(connection_times)
 
             # Reconnections should be fast
-            assert avg_reconnection_time < 2.0, f"Avg reconnection time: {avg_reconnection_time:.2f}s"
+            assert (
+                avg_reconnection_time < 2.0
+            ), f"Avg reconnection time: {avg_reconnection_time:.2f}s"
 
     @pytest.mark.asyncio
     async def test_concurrent_connections(self):
         """Test performance with multiple concurrent connections."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -388,7 +394,7 @@ class TestConnectionPerformance:
                     ws_url=f"wss://test{i}.binance.com/ws",
                     streams=[f"symbol{i}@trade"],
                     nats_url="nats://localhost:4222",
-                    nats_topic=f"crypto.trades{i}"
+                    nats_topic=f"crypto.trades{i}",
                 )
                 for i in range(10)
             ]
@@ -435,7 +441,7 @@ class TestCircuitBreakerPerformance:
         cb_time = time.time() - start_time
 
         # Calculate overhead
-        overhead_ratio = cb_time / direct_time if direct_time > 0 else float('inf')
+        overhead_ratio = cb_time / direct_time if direct_time > 0 else float("inf")
 
         # Overhead should be minimal
         assert overhead_ratio < 2.0, f"Circuit breaker overhead: {overhead_ratio:.2f}x"
@@ -491,17 +497,19 @@ class TestScalabilityPerformance:
                 ws_url="wss://test.binance.com/ws",
                 streams=streams,
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.trades"
+                nats_topic="crypto.trades",
             )
             client.nats_client = mock_nats
 
             # Generate messages for all streams
             messages = []
             for i in range(stream_count):
-                message = json.dumps({
-                    "stream": f"symbol{i}@trade",
-                    "data": {"e": "trade", "s": f"SYMBOL{i}"}
-                })
+                message = json.dumps(
+                    {
+                        "stream": f"symbol{i}@trade",
+                        "data": {"e": "trade", "s": f"SYMBOL{i}"},
+                    }
+                )
                 messages.append(message)
 
             # Measure processing time
@@ -515,7 +523,9 @@ class TestScalabilityPerformance:
 
             # Processing time should scale reasonably
             time_per_stream = processing_time / stream_count
-            assert time_per_stream < 0.01, f"Time per stream ({stream_count}): {time_per_stream:.4f}s"
+            assert (
+                time_per_stream < 0.01
+            ), f"Time per stream ({stream_count}): {time_per_stream:.4f}s"
 
     @pytest.mark.asyncio
     async def test_message_size_scalability(self):
@@ -526,7 +536,7 @@ class TestScalabilityPerformance:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
@@ -535,14 +545,12 @@ class TestScalabilityPerformance:
         for size in message_sizes:
             large_data = "x" * (size - 100)  # Account for base message size
 
-            message = json.dumps({
-                "stream": "btcusdt@trade",
-                "data": {
-                    "e": "trade",
-                    "s": "BTCUSDT",
-                    "large_field": large_data
+            message = json.dumps(
+                {
+                    "stream": "btcusdt@trade",
+                    "data": {"e": "trade", "s": "BTCUSDT", "large_field": large_data},
                 }
-            })
+            )
 
             # Measure processing time for large messages
             start_time = time.time()
@@ -582,16 +590,15 @@ class TestScalabilityPerformance:
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.trades"
+                nats_topic="crypto.trades",
             )
             client.nats_client = mock_nats
 
             # Process many messages
             for i in range(1000):
-                message = json.dumps({
-                    "stream": "btcusdt@trade",
-                    "data": {"e": "trade", "t": i}
-                })
+                message = json.dumps(
+                    {"stream": "btcusdt@trade", "data": {"e": "trade", "t": i}}
+                )
                 await client._handle_message(message)
 
         # Run load simulation
@@ -627,21 +634,23 @@ class TestPerformanceRegression:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
         # Standard test message
-        message = json.dumps({
-            "stream": "btcusdt@trade",
-            "data": {
-                "e": "trade",
-                "s": "BTCUSDT",
-                "t": 12345,
-                "p": "50000.00",
-                "q": "1.0"
+        message = json.dumps(
+            {
+                "stream": "btcusdt@trade",
+                "data": {
+                    "e": "trade",
+                    "s": "BTCUSDT",
+                    "t": 12345,
+                    "p": "50000.00",
+                    "q": "1.0",
+                },
             }
-        })
+        )
 
         # Measure baseline metrics
         message_count = 1000
@@ -658,12 +667,14 @@ class TestPerformanceRegression:
         baseline_metrics = {
             "throughput": throughput,
             "processing_time": processing_time,
-            "messages_processed": message_count
+            "messages_processed": message_count,
         }
 
         # Verify baseline meets minimum requirements
         assert baseline_metrics["throughput"] >= 1000  # 1000 msg/sec minimum
-        assert baseline_metrics["processing_time"] <= 5.0  # Max 5 seconds for 1000 messages
+        assert (
+            baseline_metrics["processing_time"] <= 5.0
+        )  # Max 5 seconds for 1000 messages
 
         # In a real test suite, you would compare against stored baselines
         # and alert if performance degrades beyond acceptable thresholds

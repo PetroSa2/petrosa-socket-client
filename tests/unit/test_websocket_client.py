@@ -264,6 +264,7 @@ class TestBinanceWebSocketClient:
         """Test heartbeat loop functionality."""
         # Mock the heartbeat interval to be very short for testing
         import constants
+
         original_interval = constants.HEARTBEAT_INTERVAL
         constants.HEARTBEAT_INTERVAL = 0.01  # 10ms for testing
 

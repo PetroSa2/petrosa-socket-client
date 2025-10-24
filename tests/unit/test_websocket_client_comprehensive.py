@@ -26,7 +26,7 @@ class TestBinanceWebSocketClientInitialization:
             ws_url="wss://stream.binance.com:9443/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
 
         assert client.ws_url == "wss://stream.binance.com:9443/ws"
@@ -46,7 +46,7 @@ class TestBinanceWebSocketClientInitialization:
             nats_url="nats://test:4222",
             nats_topic="test.topic",
             max_reconnect_attempts=5,
-            reconnect_delay=2
+            reconnect_delay=2,
         )
 
         assert client.max_reconnect_attempts == 5
@@ -59,7 +59,7 @@ class TestBinanceWebSocketClientInitialization:
             ws_url="wss://stream.binance.com:9443/ws",
             streams=[],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
 
         assert client.streams == []
@@ -70,18 +70,15 @@ class TestBinanceWebSocketClientInitialization:
             ws_url="wss://stream.binance.com:9443/ws",
             streams="btcusdt@trade",
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
 
         # Should convert string to list
         assert client.streams == ["btcusdt@trade"]
 
-    @pytest.mark.parametrize("invalid_url", [
-        "",
-        "not-a-url",
-        "http://invalid-protocol",
-        None
-    ])
+    @pytest.mark.parametrize(
+        "invalid_url", ["", "not-a-url", "http://invalid-protocol", None]
+    )
     def test_initialization_with_invalid_urls(self, invalid_url):
         """Test client initialization with invalid URLs."""
         with pytest.raises((ValueError, TypeError)):
@@ -89,7 +86,7 @@ class TestBinanceWebSocketClientInitialization:
                 ws_url=invalid_url,
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.trades"
+                nats_topic="crypto.trades",
             )
 
 
@@ -100,9 +97,9 @@ class TestWebSocketConnection:
     @pytest.mark.asyncio
     async def test_successful_connection(self):
         """Test successful WebSocket connection."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -115,7 +112,7 @@ class TestWebSocketConnection:
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="test.topic"
+                nats_topic="test.topic",
             )
 
             await client._connect()
@@ -129,14 +126,14 @@ class TestWebSocketConnection:
     @pytest.mark.asyncio
     async def test_connection_failure_websocket(self):
         """Test WebSocket connection failure."""
-        with patch('websockets.connect') as mock_connect:
+        with patch("websockets.connect") as mock_connect:
             mock_connect.side_effect = Exception("WebSocket connection failed")
 
             client = BinanceWebSocketClient(
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="test.topic"
+                nats_topic="test.topic",
             )
 
             with pytest.raises(Exception, match="WebSocket connection failed"):
@@ -147,9 +144,9 @@ class TestWebSocketConnection:
     @pytest.mark.asyncio
     async def test_connection_failure_nats(self):
         """Test NATS connection failure."""
-        with patch('websockets.connect') as mock_ws_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_ws_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_ws_connect.return_value.__aenter__.return_value = mock_websocket
             mock_nats_connect.side_effect = Exception("NATS connection failed")
@@ -158,7 +155,7 @@ class TestWebSocketConnection:
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="test.topic"
+                nats_topic="test.topic",
             )
 
             with pytest.raises(Exception, match="NATS connection failed"):
@@ -174,7 +171,7 @@ class TestWebSocketConnection:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="test.topic"
+            nats_topic="test.topic",
         )
 
         client.websocket = mock_websocket
@@ -196,7 +193,7 @@ class TestWebSocketConnection:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="test.topic"
+            nats_topic="test.topic",
         )
 
         # Should not raise error
@@ -206,9 +203,9 @@ class TestWebSocketConnection:
     @pytest.mark.asyncio
     async def test_connection_with_stream_subscription(self):
         """Test connection with stream subscription."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -220,7 +217,7 @@ class TestWebSocketConnection:
                 ws_url="wss://stream.binance.com:9443/ws",
                 streams=["btcusdt@trade", "ethusdt@ticker"],
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.data"
+                nats_topic="crypto.data",
             )
 
             await client._connect()
@@ -229,7 +226,7 @@ class TestWebSocketConnection:
             expected_subscription = {
                 "method": "SUBSCRIBE",
                 "params": ["btcusdt@trade", "ethusdt@ticker"],
-                "id": 1
+                "id": 1,
             }
 
             mock_websocket.send.assert_called_once_with(
@@ -250,7 +247,7 @@ class TestMessageHandling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
@@ -267,8 +264,8 @@ class TestMessageHandling:
                 "a": 50,
                 "T": 123456785,
                 "m": True,
-                "M": True
-            }
+                "M": True,
+            },
         }
 
         await client._handle_message(json.dumps(trade_message))
@@ -292,7 +289,7 @@ class TestMessageHandling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@ticker"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.tickers"
+            nats_topic="crypto.tickers",
         )
         client.nats_client = mock_nats
 
@@ -304,8 +301,8 @@ class TestMessageHandling:
                 "s": "BTCUSDT",
                 "p": "1000.00",
                 "P": "2.00",
-                "c": "51000.00"
-            }
+                "c": "51000.00",
+            },
         }
 
         await client._handle_message(json.dumps(ticker_message))
@@ -324,14 +321,14 @@ class TestMessageHandling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
         invalid_json = "invalid json message"
 
         # Should not raise exception, should log error
-        with patch('socket_client.core.client.logger') as mock_logger:
+        with patch("socket_client.core.client.logger") as mock_logger:
             await client._handle_message(invalid_json)
             mock_logger.error.assert_called()
 
@@ -347,7 +344,7 @@ class TestMessageHandling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
@@ -367,7 +364,7 @@ class TestMessageHandling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.websocket = mock_websocket
         client.nats_client = mock_nats
@@ -389,20 +386,20 @@ class TestMessageHandling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],  # Only subscribed to BTC trades
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
         # Message from subscribed stream
         btc_message = {
             "stream": "btcusdt@trade",
-            "data": {"e": "trade", "s": "BTCUSDT"}
+            "data": {"e": "trade", "s": "BTCUSDT"},
         }
 
         # Message from non-subscribed stream
         eth_message = {
             "stream": "ethusdt@trade",
-            "data": {"e": "trade", "s": "ETHUSDT"}
+            "data": {"e": "trade", "s": "ETHUSDT"},
         }
 
         await client._handle_message(json.dumps(btc_message))
@@ -419,9 +416,9 @@ class TestReconnectionLogic:
     @pytest.mark.asyncio
     async def test_reconnection_after_connection_loss(self):
         """Test automatic reconnection after connection loss."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             # First connection succeeds
             mock_websocket1 = AsyncMock()
             mock_websocket1.closed = False
@@ -432,7 +429,7 @@ class TestReconnectionLogic:
 
             mock_connect.return_value.__aenter__.side_effect = [
                 mock_websocket1,
-                mock_websocket2
+                mock_websocket2,
             ]
 
             mock_nats = AsyncMock()
@@ -444,7 +441,7 @@ class TestReconnectionLogic:
                 nats_url="nats://localhost:4222",
                 nats_topic="crypto.trades",
                 max_reconnect_attempts=2,
-                reconnect_delay=0.1
+                reconnect_delay=0.1,
             )
 
             # Start client
@@ -465,9 +462,9 @@ class TestReconnectionLogic:
     @pytest.mark.asyncio
     async def test_reconnection_failure_exhausts_attempts(self):
         """Test reconnection failure after exhausting attempts."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('asyncio.sleep'):  # Mock sleep to speed up test
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "asyncio.sleep"
+        ):  # Mock sleep to speed up test
             mock_connect.side_effect = Exception("Connection failed")
 
             client = BinanceWebSocketClient(
@@ -476,7 +473,7 @@ class TestReconnectionLogic:
                 nats_url="nats://localhost:4222",
                 nats_topic="crypto.trades",
                 max_reconnect_attempts=3,
-                reconnect_delay=0.1
+                reconnect_delay=0.1,
             )
 
             with pytest.raises(Exception, match="Connection failed"):
@@ -488,13 +485,13 @@ class TestReconnectionLogic:
     @pytest.mark.asyncio
     async def test_exponential_backoff_reconnection_delay(self):
         """Test exponential backoff for reconnection delays."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('asyncio.sleep') as mock_sleep:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "asyncio.sleep"
+        ) as mock_sleep:
             mock_connect.side_effect = [
                 Exception("First attempt"),
                 Exception("Second attempt"),
-                Exception("Third attempt")
+                Exception("Third attempt"),
             ]
 
             client = BinanceWebSocketClient(
@@ -503,7 +500,7 @@ class TestReconnectionLogic:
                 nats_url="nats://localhost:4222",
                 nats_topic="crypto.trades",
                 max_reconnect_attempts=3,
-                reconnect_delay=1
+                reconnect_delay=1,
             )
 
             with pytest.raises(Exception):
@@ -517,9 +514,9 @@ class TestReconnectionLogic:
     @pytest.mark.asyncio
     async def test_reconnection_preserves_subscription(self):
         """Test that reconnection preserves stream subscriptions."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -531,7 +528,7 @@ class TestReconnectionLogic:
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade", "ethusdt@ticker"],
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.data"
+                nats_topic="crypto.data",
             )
 
             await client._reconnect()
@@ -540,12 +537,10 @@ class TestReconnectionLogic:
             expected_subscription = {
                 "method": "SUBSCRIBE",
                 "params": ["btcusdt@trade", "ethusdt@ticker"],
-                "id": 1
+                "id": 1,
             }
 
-            mock_websocket.send.assert_called_with(
-                json.dumps(expected_subscription)
-            )
+            mock_websocket.send.assert_called_with(json.dumps(expected_subscription))
 
 
 @pytest.mark.unit
@@ -555,9 +550,9 @@ class TestClientLifecycle:
     @pytest.mark.asyncio
     async def test_start_client(self):
         """Test starting the WebSocket client."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -569,7 +564,7 @@ class TestClientLifecycle:
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.trades"
+                nats_topic="crypto.trades",
             )
 
             # Start client in background
@@ -596,7 +591,7 @@ class TestClientLifecycle:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
 
         client.websocket = mock_websocket
@@ -614,9 +609,9 @@ class TestClientLifecycle:
     @pytest.mark.asyncio
     async def test_context_manager_protocol(self):
         """Test client as async context manager."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -628,7 +623,7 @@ class TestClientLifecycle:
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.trades"
+                nats_topic="crypto.trades",
             )
 
             async with client:
@@ -639,9 +634,9 @@ class TestClientLifecycle:
     @pytest.mark.asyncio
     async def test_multiple_start_calls(self):
         """Test that multiple start calls are handled gracefully."""
-        with patch('websockets.connect') as mock_connect, \
-             patch('nats.connect') as mock_nats_connect:
-
+        with patch("websockets.connect") as mock_connect, patch(
+            "nats.connect"
+        ) as mock_nats_connect:
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -653,7 +648,7 @@ class TestClientLifecycle:
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.trades"
+                nats_topic="crypto.trades",
             )
 
             # First start
@@ -686,17 +681,14 @@ class TestErrorHandling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
-        message = {
-            "stream": "btcusdt@trade",
-            "data": {"e": "trade", "s": "BTCUSDT"}
-        }
+        message = {"stream": "btcusdt@trade", "data": {"e": "trade", "s": "BTCUSDT"}}
 
         # Should handle error gracefully
-        with patch('socket_client.core.client.logger') as mock_logger:
+        with patch("socket_client.core.client.logger") as mock_logger:
             await client._handle_message(json.dumps(message))
             mock_logger.error.assert_called()
 
@@ -710,26 +702,28 @@ class TestErrorHandling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.websocket = mock_websocket
 
         # Should handle error gracefully
-        with patch('socket_client.core.client.logger') as mock_logger:
+        with patch("socket_client.core.client.logger") as mock_logger:
             await client._send_subscription()
             mock_logger.error.assert_called()
 
     @pytest.mark.asyncio
     async def test_circuit_breaker_integration(self):
         """Test circuit breaker integration with WebSocket operations."""
-        with patch('socket_client.utils.circuit_breaker.websocket_circuit_breaker') as mock_cb:
+        with patch(
+            "socket_client.utils.circuit_breaker.websocket_circuit_breaker"
+        ) as mock_cb:
             mock_cb.call.side_effect = CircuitBreakerOpenError("Circuit open")
 
             client = BinanceWebSocketClient(
                 ws_url="wss://test.binance.com/ws",
                 streams=["btcusdt@trade"],
                 nats_url="nats://localhost:4222",
-                nats_topic="crypto.trades"
+                nats_topic="crypto.trades",
             )
 
             with pytest.raises(CircuitBreakerOpenError):
@@ -744,7 +738,7 @@ class TestErrorHandling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
@@ -752,15 +746,15 @@ class TestErrorHandling:
             '{"incomplete": ',
             '{"stream": null, "data": {}}',
             '{"stream": "", "data": null}',
-            '[]',  # Array instead of object
-            'null'
+            "[]",  # Array instead of object
+            "null",
         ]
 
         for msg in malformed_messages:
-            with patch('socket_client.core.client.logger') as mock_logger:
+            with patch("socket_client.core.client.logger") as mock_logger:
                 await client._handle_message(msg)
                 # Should log error but not crash
-                if msg != 'null':  # null is valid JSON
+                if msg != "null":  # null is valid JSON
                     mock_logger.error.assert_called()
 
 
@@ -777,7 +771,7 @@ class TestPerformanceAndScaling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
@@ -791,8 +785,8 @@ class TestPerformanceAndScaling:
                     "s": "BTCUSDT",
                     "t": i,
                     "p": f"{50000 + i}",
-                    "q": "1.0"
-                }
+                    "q": "1.0",
+                },
             }
             messages.append(json.dumps(message))
 
@@ -816,16 +810,13 @@ class TestPerformanceAndScaling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
         # Process many messages to check for memory leaks
         for i in range(5000):
-            message = {
-                "stream": "btcusdt@trade",
-                "data": {"e": "trade", "t": i}
-            }
+            message = {"stream": "btcusdt@trade", "data": {"e": "trade", "t": i}}
             await client._handle_message(json.dumps(message))
 
         # Should not accumulate internal state
@@ -841,16 +832,13 @@ class TestPerformanceAndScaling:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
         client.nats_client = mock_nats
 
         # Create concurrent message handling tasks
         messages = [
-            json.dumps({
-                "stream": "btcusdt@trade",
-                "data": {"e": "trade", "t": i}
-            })
+            json.dumps({"stream": "btcusdt@trade", "data": {"e": "trade", "t": i}})
             for i in range(100)
         ]
 
@@ -871,7 +859,7 @@ class TestHealthAndMonitoring:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
 
         client.is_connected = True
@@ -891,7 +879,7 @@ class TestHealthAndMonitoring:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.trades"
+            nats_topic="crypto.trades",
         )
 
         health = client.get_health_status()
@@ -906,7 +894,7 @@ class TestHealthAndMonitoring:
             ws_url="wss://test.binance.com/ws",
             streams=["btcusdt@trade", "ethusdt@ticker"],
             nats_url="nats://localhost:4222",
-            nats_topic="crypto.data"
+            nats_topic="crypto.data",
         )
 
         metrics = client.get_metrics()

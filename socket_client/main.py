@@ -51,11 +51,12 @@ class SocketClientService:
         # This ensures the handler survives any logging reconfiguration
         try:
             import otel_init
+
             # Call setup_telemetry explicitly since OTEL_NO_AUTO_INIT=1 prevents auto-setup
             otel_init.setup_telemetry(
                 service_name=constants.OTEL_SERVICE_NAME,
                 service_version=constants.OTEL_SERVICE_VERSION,
-                otlp_endpoint=constants.OTEL_EXPORTER_OTLP_ENDPOINT
+                otlp_endpoint=constants.OTEL_EXPORTER_OTLP_ENDPOINT,
             )
             # Attach the OTLP logging handler to the root logger
             otel_init.attach_logging_handler_simple()
