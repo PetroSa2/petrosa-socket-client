@@ -26,11 +26,14 @@ from socket_client.utils.logger import setup_logging  # noqa: E402
 
 # Initialize OpenTelemetry as early as possible
 try:
-    import otel_init  # noqa: E402
+    from petrosa_otel import setup_telemetry  # noqa: E402
 
     if not os.getenv("OTEL_NO_AUTO_INIT"):
-        otel_init.setup_telemetry(service_name=constants.OTEL_SERVICE_NAME)
-        # Note: Handler attachment moved to __init__ after setup_logging()
+        setup_telemetry(
+            service_name=constants.OTEL_SERVICE_NAME,
+            service_type="async",
+            auto_attach_logging=False,  # Will attach manually after setup_logging()
+        )
 except ImportError:
     pass
 
@@ -50,18 +53,12 @@ class SocketClientService:
         # Set up OpenTelemetry and attach OTLP logging handler AFTER setup_logging()
         # This ensures the handler survives any logging reconfiguration
         try:
-            import otel_init
+            from petrosa_otel import attach_logging_handler
 
-            # Call setup_telemetry explicitly since OTEL_NO_AUTO_INIT=1 prevents auto-setup
-            otel_init.setup_telemetry(
-                service_name=constants.OTEL_SERVICE_NAME,
-                service_version=constants.OTEL_SERVICE_VERSION,
-                otlp_endpoint=constants.OTEL_EXPORTER_OTLP_ENDPOINT,
-            )
             # Attach the OTLP logging handler to the root logger
-            otel_init.attach_logging_handler_simple()
+            attach_logging_handler()
         except Exception as e:
-            print(f"⚠️  Failed to set up OTLP: {e}")
+            print(f"⚠️  Failed to attach OTLP logging handler: {e}")
 
         self.websocket_client: Optional[BinanceWebSocketClient] = None
         self.health_server: Optional[HealthServer] = None
