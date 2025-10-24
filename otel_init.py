@@ -35,7 +35,7 @@ def setup_telemetry(
     otlp_endpoint: Optional[str] = None,
     enable_metrics: bool = True,
     enable_traces: bool = True,
-    enable_logs: bool = True
+    enable_logs: bool = True,
 ) -> None:
     """
     Set up OpenTelemetry instrumentation.
@@ -55,9 +55,21 @@ def setup_telemetry(
     # Get configuration from environment variables
     service_version = service_version or os.getenv("OTEL_SERVICE_VERSION", "1.0.0")
     otlp_endpoint = otlp_endpoint or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-    enable_metrics = enable_metrics and os.getenv("ENABLE_METRICS", "true").lower() in ("true", "1", "yes")
-    enable_traces = enable_traces and os.getenv("ENABLE_TRACES", "true").lower() in ("true", "1", "yes")
-    enable_logs = enable_logs and os.getenv("ENABLE_LOGS", "true").lower() in ("true", "1", "yes")
+    enable_metrics = enable_metrics and os.getenv("ENABLE_METRICS", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    enable_traces = enable_traces and os.getenv("ENABLE_TRACES", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    enable_logs = enable_logs and os.getenv("ENABLE_LOGS", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
 
     # Create resource attributes
     resource_attributes = {
@@ -93,8 +105,7 @@ def setup_telemetry(
                 ]
                 span_headers = dict(headers_list)
             otlp_exporter = OTLPSpanExporter(
-                endpoint=otlp_endpoint,
-                headers=span_headers
+                endpoint=otlp_endpoint, headers=span_headers
             )
 
             # Add batch processor
@@ -123,15 +134,16 @@ def setup_telemetry(
                 ]
                 metric_headers = dict(metric_headers_list)
             metric_reader = PeriodicExportingMetricReader(
-                OTLPMetricExporter(
-                    endpoint=otlp_endpoint,
-                    headers=metric_headers
+                OTLPMetricExporter(endpoint=otlp_endpoint, headers=metric_headers),
+                export_interval_millis=int(
+                    os.getenv("OTEL_METRIC_EXPORT_INTERVAL", "60000")
                 ),
-                export_interval_millis=int(os.getenv("OTEL_METRIC_EXPORT_INTERVAL", "60000"))
             )
 
             # Create meter provider
-            meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
+            meter_provider = MeterProvider(
+                resource=resource, metric_readers=[metric_reader]
+            )
 
             # Set global meter provider
             metrics.set_meter_provider(meter_provider)

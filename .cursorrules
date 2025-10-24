@@ -1,353 +1,501 @@
-# Cursor AI Rules for Petrosa Systems
+# MASTER RULES: See petrosa_k8s/.cursorrules
 
-## Repository Context
-This is a unified configuration for all Petrosa systems:
-- **petrosa-bot-ta-analysis**: Technical Analysis bot for crypto trading
-- **petrosa-tradeengine**: Cryptocurrency trading engine system
-- **petrosa-binance-data-extractor**: Cryptocurrency data extraction system
-- **petrosa-socket-client**: Binance WebSocket client for real-time data streaming
+**IMPORTANT**: This file contains service-specific rules only. For ecosystem-wide rules, architecture, shared resources, deployment patterns, and cross-service integration, always refer to:
+- **Master Cursorrules**: `/Users/yurisa2/petrosa/petrosa_k8s/.cursorrules`
 
-All systems use the same remote MicroK8s cluster, CI/CD pipeline patterns, and development workflows.
+When working on this service, read the master cursorrules first to understand the full system context.
 
-## Key Files to Reference
-- `README.md` - Project-specific documentation and usage guide
-- `Makefile` - Complete command reference for all development tasks
-- `k8s/` - Kubernetes manifests for production deployment
-- `k8s/kubeconfig.yaml` - Remote MicroK8s cluster configuration
-- `scripts/` - Automation scripts for setup, testing, and deployment
-- `docs/` - Comprehensive documentation and guides
+---
 
-## Prerequisites & Installation
-- **Python 3.11+**: Required for development and runtime
-- **Docker**: Required for containerization and local testing
-- **kubectl**: Required for Kubernetes deployment (remote cluster)
-- **Make**: Required for using the Makefile commands
+## Socket Client - Satellite Rules
 
-**Note**: All projects use a **remote MicroK8s cluster** - no local Kubernetes installation required.
+### Service Context
 
-## Quick Start Commands
+The **Petrosa Socket Client** is a high-performance WebSocket client that maintains a persistent connection to the Binance WebSocket API for real-time market data streaming. It receives trades, tickers, and order book depth updates and publishes them to NATS for consumption by downstream services (realtime-strategies, data-manager).
+
+This service operates **24/7 with a single replica deployment** because it maintains stateful WebSocket connections. Multiple replicas would create duplicate data streams and unnecessary load on the Binance API. **Scaling must be vertical only** (increase CPU/memory resources), never horizontal (adding replicas).
+
+The socket-client is a critical component in the data ingestion pipeline, processing **1000+ messages per second** during peak trading hours and ensuring zero message loss through circuit breakers, exponential backoff, and queue management.
+
+### Cross-References to Master
+
+- **Ecosystem Architecture**: See master § System Architecture Overview → Data Ingestion & Storage Layer
+- **Work Tracking**: See master § Centralized Work Tracking with GitHub Projects
+- **NATS Topics**: See master § NATS Message Bus → `binance.websocket.data`
+- **Deployment Patterns**: See master § Socket Client Configuration
+- **Scaling Strategy**: See master § Deployment Patterns (WHY single replica is critical)
+- **Shared Resources**: See master § Shared Resources (ConfigMaps, Secrets)
+
+---
+
+## Service-Specific Rules
+
+### Repository Structure
+
+**Key Files**:
+- `README.md` - Comprehensive service documentation
+- `Makefile` - Development commands
+- `k8s/deployment.yaml` - **IMPORTANT: Single replica only**
+- `socket_client/core/client.py` - Main WebSocket client
+- `socket_client/core/nats_publisher.py` - NATS publishing logic
+- `socket_client/utils/circuit_breaker.py` - Circuit breaker implementation
+- `socket_client/models/message.py` - Message transformation models
+
+**Directory Layout**:
+```
+petrosa-socket-client/
+├── socket_client/
+│   ├── core/           # Core WebSocket and NATS logic
+│   │   ├── client.py
+│   │   ├── nats_publisher.py
+│   │   └── reconnection.py
+│   ├── models/         # Message models
+│   │   └── message.py
+│   ├── utils/          # Utilities
+│   │   ├── circuit_breaker.py
+│   │   ├── logger.py
+│   │   └── metrics.py
+│   └── health/         # Health check server
+│       └── server.py
+└── k8s/                # Kubernetes manifests
+    ├── deployment.yaml
+    ├── service.yaml
+    └── configmap.yaml
+```
+
+### CRITICAL: Single Replica Deployment
+
+**Why Single Replica is Mandatory**:
+
+1. **Stateful Connection**: WebSocket maintains state (subscriptions, connection ID)
+2. **Duplicate Data**: Multiple replicas = multiple identical WebSocket connections = duplicate messages to NATS
+3. **API Load**: Each replica creates separate connection to Binance, multiplying load unnecessarily
+4. **Message Ordering**: Multiple streams can cause race conditions in downstream consumers
+5. **Cost**: Unnecessary resource usage and Binance API quota consumption
+
+**Correct Deployment Pattern**:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  replicas: 1  # NEVER change this to > 1
+  template:
+    spec:
+      containers:
+      - name: socket-client
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "2Gi"    # Scale UP these values
+            cpu: "1000m"      # not replica count
+```
+
+**Vertical Scaling Strategy**:
+```yaml
+# If more resources needed, increase these values:
+resources:
+  limits:
+    memory: "4Gi"    # Increase memory
+    cpu: "2000m"      # Increase CPU
+    
+# NEVER do this:
+# replicas: 3  ❌ WRONG - creates duplicate streams
+```
+
+### WebSocket Connection Management
+
+**Connection Lifecycle**:
+```python
+class BinanceWebSocketClient:
+    """
+    Lifecycle:
+    1. Connect to wss://stream.binance.com:9443
+    2. Subscribe to configured streams
+    3. Start message processing loop
+    4. Start ping/pong keepalive loop
+    5. Start heartbeat monitoring loop
+    6. Handle reconnections with exponential backoff
+    """
+    
+    async def start(self):
+        await self._connect_nats()
+        await self._connect_websocket()
+        self.processor_task = asyncio.create_task(self._process_messages())
+        self.ping_task = asyncio.create_task(self._ping_loop())
+        self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+    
+    async def _connect_websocket(self):
+        """Connect with exponential backoff."""
+        attempt = 0
+        while attempt < self.max_reconnect_attempts:
+            try:
+                self.websocket = await websockets.connect(
+                    self.ws_url,
+                    ping_interval=30,
+                    ping_timeout=10,
+                    close_timeout=10
+                )
+                await self._subscribe_to_streams()
+                self.is_connected = True
+                return
+            except Exception as e:
+                attempt += 1
+                delay = min(60, self.base_delay * (2 ** attempt))
+                logger.warning(f"Connection failed, retry {attempt}/{self.max_reconnect_attempts} in {delay}s")
+                await asyncio.sleep(delay)
+```
+
+**Exponential Backoff Pattern**:
+```python
+def calculate_backoff_delay(attempt: int, base_delay: int = 5, max_delay: int = 60) -> float:
+    """
+    Calculate exponential backoff with jitter.
+    
+    Formula: min(max_delay, base_delay * 2^attempt + random(0, 1))
+    
+    Examples:
+    - Attempt 1: 5s + jitter
+    - Attempt 2: 10s + jitter
+    - Attempt 3: 20s + jitter
+    - Attempt 4: 40s + jitter
+    - Attempt 5+: 60s + jitter (capped)
+    """
+    import random
+    delay = base_delay * (2 ** attempt)
+    delay = min(delay, max_delay)
+    jitter = random.uniform(0, 1)
+    return delay + jitter
+```
+
+**Circuit Breaker Integration**:
+```python
+# Protect against cascading failures
+websocket_breaker = CircuitBreaker(
+    failure_threshold=5,      # Open after 5 consecutive failures
+    recovery_timeout=60,      # Try recovery after 60 seconds
+    expected_exception=websockets.exceptions.WebSocketException
+)
+
+nats_breaker = CircuitBreaker(
+    failure_threshold=5,
+    recovery_timeout=60,
+    expected_exception=nats.errors.Error
+)
+```
+
+### Stream Configuration
+
+**Supported Stream Types**:
+```python
+# Trade streams (individual trades)
+STREAM_PATTERN: "{symbol}@trade"
+Example: "btcusdt@trade"
+
+# Ticker streams (24hr statistics)
+STREAM_PATTERN: "{symbol}@ticker"
+Example: "btcusdt@ticker"
+
+# Depth streams (order book top 20 levels, 100ms updates)
+STREAM_PATTERN: "{symbol}@depth20@100ms"
+Example: "btcusdt@depth20@100ms"
+
+# Aggregated trades
+STREAM_PATTERN: "{symbol}@aggTrade"
+Example: "btcusdt@aggTrade"
+```
+
+**Subscription Message**:
+```json
+{
+  "method": "SUBSCRIBE",
+  "params": [
+    "btcusdt@trade",
+    "btcusdt@ticker",
+    "btcusdt@depth20@100ms"
+  ],
+  "id": 1
+}
+```
+
+**Configuration via Environment**:
 ```bash
-# Complete setup
+# Comma-separated stream list
+BINANCE_STREAMS="btcusdt@trade,btcusdt@ticker,btcusdt@depth20@100ms,ethusdt@trade,ethusdt@ticker"
+
+# WebSocket URL
+BINANCE_WS_URL="wss://stream.binance.com:9443"
+
+# NATS configuration
+NATS_URL="nats://nats-server.nats:4222"
+NATS_TOPIC="binance.websocket.data"
+```
+
+### Message Processing Pipeline
+
+**Message Flow**:
+```
+WebSocket → Queue (5000 capacity) → Processor → Transform → NATS Publisher
+    ↓            ↓                        ↓           ↓            ↓
+ Parse JSON   Backpressure            Validate    Add UUID    Publish
+              Detection                           Add Metadata  Topic
+```
+
+**Message Transformation**:
+```python
+# Input from Binance
+{
+  "e": "trade",
+  "E": 1234567890123,
+  "s": "BTCUSDT",
+  "t": 12345,
+  "p": "50000.00",
+  "q": "0.001"
+}
+
+# Output to NATS
+{
+  "stream": "btcusdt@trade",
+  "data": { /* original Binance data */ },
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "message_id": "550e8400-e29b-41d4-a716-446655440000",
+  "source": "binance-websocket",
+  "version": "1.0"
+}
+```
+
+**Queue Management**:
+```python
+# Message queue with backpressure detection
+message_queue = asyncio.Queue(maxsize=5000)
+
+async def _handle_message(self, message: str):
+    try:
+        # Check queue capacity
+        queue_utilization = self.message_queue.qsize() / 5000
+        if queue_utilization > 0.9:
+            logger.warning(f"Queue at {queue_utilization*100}% capacity")
+            self.dropped_messages += 1
+            return  # Drop message to prevent queue overflow
+        
+        # Add to queue for processing
+        await self.message_queue.put(message)
+    except asyncio.QueueFull:
+        self.dropped_messages += 1
+        logger.error("Queue full, dropping message")
+```
+
+### Health Checks and Monitoring
+
+**Health Endpoints**:
+```python
+@app.get("/healthz")
+async def healthz():
+    """Liveness probe - is process running?"""
+    return {"status": "healthy"}
+
+@app.get("/ready")
+async def ready():
+    """Readiness probe - can handle traffic?"""
+    if not client.is_connected or client.nats_client.is_closed:
+        return {"status": "not_ready"}
+    return {"status": "ready"}
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics."""
+    return {
+        "messages_processed": client.processed_messages,
+        "messages_dropped": client.dropped_messages,
+        "queue_size": client.message_queue.qsize(),
+        "websocket_connected": client.is_connected,
+        "nats_connected": not client.nats_client.is_closed
+    }
+```
+
+**Heartbeat Monitoring** (every 30 seconds):
+```json
+{
+  "level": "INFO",
+  "message": "HEARTBEAT: WebSocket Client Statistics",
+  "connection_status": true,
+  "messages_processed_since_last": 1250,
+  "messages_per_second": 41.67,
+  "total_processed": 150000,
+  "queue_utilization_percent": 0.9,
+  "reconnect_attempts": 0
+}
+```
+
+### Common Issues & Solutions
+
+#### 1. High Message Drop Rate
+
+**Symptom**: `messages_dropped > 0` or `queue_utilization > 90%`
+
+**Solutions**:
+```yaml
+# Increase queue size
+env:
+- name: MAX_QUEUE_SIZE
+  value: "10000"
+
+# Increase resources (vertical scaling)
+resources:
+  limits:
+    memory: "4Gi"
+    cpu: "2000m"
+```
+
+#### 2. Frequent Reconnections
+
+**Symptom**: WebSocket disconnects every few minutes
+
+**Check**:
+```bash
+# View connection logs
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps -l app=socket-client | grep "reconnect"
+
+# Check network policies
+kubectl --kubeconfig=k8s/kubeconfig.yaml get networkpolicies -n petrosa-apps
+
+# Verify egress to Binance
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/petrosa-socket-client -n petrosa-apps -- nc -zv stream.binance.com 9443
+```
+
+**Solutions**:
+```python
+# Increase ping interval
+ping_interval=60  # from 30
+
+# Adjust timeout values
+close_timeout=20  # from 10
+```
+
+#### 3. NATS Publishing Failures
+
+**Symptom**: `nats_state: "disconnected"` or publish errors
+
+**Solutions**:
+```bash
+# Check NATS connectivity
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/petrosa-socket-client -n petrosa-apps -- nc -zv nats-server.nats 4222
+
+# Verify NATS server status
+kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -n nats
+
+# Check circuit breaker state
+curl http://petrosa-socket-client/metrics | jq '.circuit_breaker'
+```
+
+#### 4. Memory Leaks
+
+**Symptom**: Gradual memory increase, eventual OOM kill
+
+**Debug**:
+```python
+# Enable memory profiling
+import tracemalloc
+tracemalloc.start()
+
+# Periodic snapshot
+snapshot = tracemalloc.take_snapshot()
+top_stats = snapshot.statistics('lineno')
+for stat in top_stats[:10]:
+    print(stat)
+```
+
+**Common Causes**:
+- Queue not being drained (processor task crashed)
+- Websocket messages not being garbage collected
+- NATS connection leaking
+
+### Development Workflow
+
+**Local Development**:
+```bash
+# Setup
 make setup
 
-# Run local pipeline
-make pipeline
+# Run with local NATS (requires NATS server running)
+make run-local
 
-# Deploy to Kubernetes
-make deploy
-
-# Check deployment status
-make k8s-status
+# Dry run (connect but don't publish)
+NATS_DRY_RUN=true python -m socket_client.main
 ```
 
-## Common Issues & Solutions
-
-### 1. Python Environment Issues
+**Testing**:
 ```bash
-# Check Python version
-python3 --version
+# Unit tests
+pytest tests/unit/ -v
 
-# Recreate virtual environment
-rm -rf .venv
-make setup
+# Integration tests (requires test NATS)
+pytest tests/integration/ -v
+
+# Load test
+pytest tests/load/test_high_throughput.py -v
 ```
 
-### 2. Docker Build Issues
+**Debugging**:
 ```bash
-# Clean Docker cache
-make docker-clean
+# Check WebSocket connection
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps -l app=socket-client --tail=100 | grep "Connected to Binance"
 
-# Rebuild image
-make build
+# Monitor message flow
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/petrosa-socket-client -n petrosa-apps -- curl localhost:8080/metrics
+
+# Check queue status
+watch -n 1 'kubectl --kubeconfig=k8s/kubeconfig.yaml exec deployment/petrosa-socket-client -n petrosa-apps -- curl -s localhost:8080/metrics | jq ".queue_size"'
 ```
 
-### 3. Kubernetes Connection Issues
+### Configuration
+
+**Environment Variables** (service-specific):
 ```bash
-# Set kubeconfig for remote cluster
-export KUBECONFIG=k8s/kubeconfig.yaml
+# WebSocket configuration
+BINANCE_WS_URL="wss://stream.binance.com:9443"
+BINANCE_STREAMS="btcusdt@trade,btcusdt@ticker,btcusdt@depth20@100ms"
 
-# Check cluster connection
-kubectl --kubeconfig=k8s/kubeconfig.yaml cluster-info
+# Reconnection settings
+WEBSOCKET_RECONNECT_DELAY=5          # Base delay in seconds
+WEBSOCKET_MAX_RECONNECT_ATTEMPTS=10  # Max attempts before giving up
+WEBSOCKET_PING_INTERVAL=30           # Ping interval in seconds
 
-# Check namespace
-kubectl --kubeconfig=k8s/kubeconfig.yaml get namespace petrosa-apps
+# Queue management
+MAX_QUEUE_SIZE=5000                  # Message queue capacity
+MESSAGE_TTL_SECONDS=60               # Drop messages older than this
 
-# View deployment status
-make k8s-status
+# NATS configuration
+NATS_TOPIC="binance.websocket.data"  # Topic for publishing
 
-# Note: This is a remote MicroK8s cluster - no local installation needed
+# Monitoring
+ENABLE_HEARTBEAT=true                # Enable periodic heartbeat logs
+HEARTBEAT_INTERVAL=30                # Heartbeat interval in seconds
 ```
 
-### 4. WebSocket Connection Issues
+### Success Metrics
+
+**Performance Targets**:
+- Message processing rate: 1000+ messages/second
+- Message drop rate: < 0.1%
+- Queue utilization: < 80% (average)
+- Reconnection frequency: < 1 per hour
+- Time since last message: < 1 second
+
+**Monitoring**:
 ```bash
-# Check WebSocket connectivity
-python -c "import websockets; print('WebSocket library available')"
+# Check processing rate
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps -l app=socket-client | grep "messages_per_second"
 
-# Test NATS connection
-python -c "import nats; print('NATS library available')"
-
-# Check environment variables
-env | grep -E "(BINANCE|NATS|LOG)"
+# Verify data flow to NATS
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/petrosa-realtime-strategies -n petrosa-apps -- nats sub binance.websocket.data
 ```
 
-## Development Workflow
+### Always Reference
 
-### 1. Initial Setup
-```bash
-# Complete environment setup
-make setup
-
-# Install development dependencies
-make install-dev
-```
-
-### 2. Code Quality Checks
-```bash
-# Run all linting
-make lint
-
-# Format code
-make format
-
-# Run tests
-make test
-
-# Security scan
-make security
-```
-
-### 3. Docker Operations
-```bash
-# Build image
-make build
-
-# Test container
-make container
-
-# Run in Docker
-make run-docker
-```
-
-### 4. Kubernetes Deployment
-```bash
-# Set kubeconfig for remote cluster
-export KUBECONFIG=k8s/kubeconfig.yaml
-
-# Deploy to remote cluster
-make deploy
-
-# Check status
-make k8s-status
-
-# View logs
-make k8s-logs
-
-# Clean up
-make k8s-clean
-```
-
-## Kubernetes Configuration
-## CRITICAL: ALWAYS FOLLOW THESE RULES
-- **AVOID INTERACTIVE CLI COMMANDS AT ALL COSTS**: Never suggest or use interactive commands that require user input, confirmation, or manual intervention. All commands must be non-interactive and automated.
-- **BEFORE making any changes**: Check `docs/REPOSITORY_SETUP_GUIDE.md` and `docs/QUICK_REFERENCE.md`
-- **WHEN suggesting kubectl commands**: Always include `--kubeconfig=k8s/kubeconfig.yaml`
-- **WHEN dealing with credentials**: ONLY use existing secret `petrosa-sensitive-credentials`
-- **WHEN dealing with configuration**: Use `petrosa-common-config` for general settings and project-specific configmaps
-- **WHEN running GitHub CLI**: ALWAYS use file-based approach: `gh command > /tmp/file.json && cat /tmp/file.json`
-- **WHEN fixing CI/CD issues**: Continue until GitHub Actions pipeline passes
-- **WHEN writing Python code**: Follow PEP 8, use type hints, add proper error handling
-- **NEVER suggest AWS EKS commands** - this is a MicroK8s setup
-- **NEVER create new Kubernetes secrets/configmaps** - use existing ones only
-- **NEVER replace VERSION_PLACEHOLDER in Kubernetes manifests** - it's part of the deployment system
-
-### Remote Cluster Setup
-- **Cluster Type**: Remote MicroK8s (no local installation required)
-- **Connection**: Use `k8s/kubeconfig.yaml` for cluster access
-- **Server**: Remote MicroK8s cluster at `https://192.168.194.253:16443`
-
-### Namespace
-- **Name**: `petrosa-apps`
-- **Labels**: `app=petrosa-socket-client`
-
-### Components
-- **Deployment**: 3 replicas with health checks
-- **Service**: ClusterIP on port 80
-- **Ingress**: SSL-enabled with Let's Encrypt
-- **HPA**: Auto-scaling based on CPU/memory
-
-## Environment Variables
-
-### Common Variables (All Projects)
-- `ENVIRONMENT`: Environment name (default: production)
-- `LOG_LEVEL`: Logging level (default: INFO)
-
-### Socket Client Specific Variables
-- `BINANCE_WS_URL`: Binance WebSocket URL (default: wss://stream.binance.com:9443)
-- `BINANCE_STREAMS`: Comma-separated list of streams to subscribe to
-- `NATS_URL`: NATS server URL
-- `NATS_TOPIC`: NATS topic for publishing messages
-- `WEBSOCKET_RECONNECT_DELAY`: Reconnection delay in seconds (default: 5)
-- `WEBSOCKET_MAX_RECONNECT_ATTEMPTS`: Maximum reconnection attempts (default: 10)
-- `MESSAGE_TTL_SECONDS`: Message TTL in seconds (default: 60)
-
-## Testing Procedures
-
-### Standard Test Commands
-```bash
-# Run all tests
-make test
-
-# Run with coverage
-python -m pytest tests/ -v --cov=. --cov-report=term
-
-# Run specific test file
-python -m pytest tests/test_specific.py -v
-
-# Run linting
-make lint
-
-# Run security scan
-make security
-```
-
-### Pipeline Testing
-```bash
-# Run complete local pipeline
-make pipeline
-
-# Run specific pipeline stages
-./scripts/local-pipeline.sh lint test
-./scripts/local-pipeline.sh build container
-./scripts/local-pipeline.sh deploy
-```
-
-## Troubleshooting Scripts
-
-### Complete Diagnostics
-```bash
-# Run all checks
-./scripts/local-pipeline.sh all
-
-# Quick fixes
-make setup
-make test
-```
-
-### Specific Component Checks
-```bash
-# Check Python environment
-./scripts/local-pipeline.sh setup
-
-# Check dependencies
-./scripts/local-pipeline.sh lint
-
-# Check Docker
-./scripts/local-pipeline.sh build
-
-# Check Kubernetes
-./scripts/local-pipeline.sh deploy
-```
-
-## Local Pipeline
-
-### Complete Pipeline
-```bash
-# Run all stages
-./scripts/local-pipeline.sh all
-
-# Run specific stages
-./scripts/local-pipeline.sh lint test
-./scripts/local-pipeline.sh build container
-./scripts/local-pipeline.sh deploy
-```
-
-### Pipeline Stages
-1. **Setup**: Environment and dependencies
-2. **Lint**: Code quality checks (flake8, black, ruff, mypy)
-3. **Test**: Unit tests with coverage
-4. **Security**: Vulnerability scanning with Trivy
-5. **Build**: Docker image building
-6. **Container**: Container testing
-7. **Deploy**: Kubernetes deployment
-
-## GitHub CLI Commands
-
-### File Output Pattern
-When running GitHub CLI (`gh`) commands, always dump output to a temporary file and then read it:
-```bash
-# Example pattern
-gh api repos/owner/repo/contents/path > /tmp/gh_output.json
-cat /tmp/gh_output.json
-
-# For commands that need processing
-gh repo list --json name,url > /tmp/repos.json
-jq -r '.[].name' /tmp/repos.json
-
-# Clean up after use
-rm /tmp/gh_output.json
-```
-
-### Common GitHub CLI Patterns
-```bash
-# Get repository info
-gh api repos/owner/repo > /tmp/repo_info.json
-
-# List issues
-gh issue list --repo owner/repo --json number,title,state > /tmp/issues.json
-
-# Get workflow runs
-gh run list --repo owner/repo --json id,status,conclusion > /tmp/runs.json
-
-# Read and process the output
-cat /tmp/repo_info.json | jq '.name'
-```
-
-## CI/CD Pipeline Fix Process
-When fixing the pipeline, go until it is fully green and stop only when CI/CD on GHA is fixed. This means:
-- Run all tests, lint, and build locally until everything passes
-- Only commit and push when all local checks are green
-- Check the GitHub Actions (GHA) pipeline after pushing
-- If the GHA pipeline fails, repeat the process until it is green
-- Do not stop until the CI/CD pipeline on GHA is fully fixed
-
-## WebSocket Client Specific Guidelines
-
-### Connection Management
-- Always implement exponential backoff for reconnections
-- Use heartbeat/ping-pong to detect connection health
-- Implement graceful shutdown with proper cleanup
-- Handle connection timeouts and rate limits
-
-### Message Processing
-- Parse JSON messages with proper error handling
-- Implement message validation before publishing to NATS
-- Use structured logging for all WebSocket events
-- Monitor message processing latency
-
-### Resource Management
-- Implement memory limits and monitoring
-- Use connection pooling for NATS
-- Drop messages when backpressure is detected
-- Monitor CPU and memory usage
-
-### Error Handling
-- Log all WebSocket connection errors
-- Implement circuit breaker pattern for repeated failures
-- Use structured error reporting
-- Monitor error rates and alert on thresholds
-
-## Always Reference
-- **AVOID INTERACTIVE CLI COMMANDS AT ALL COSTS**: Never suggest or use interactive commands that require user input, confirmation, or manual intervention. All commands must be non-interactive and automated.
-- Check project-specific `README.md` for detailed documentation
-- Use `Makefile` for all common commands
-- Use `scripts/` directory for automation and troubleshooting
-- Use `k8s/kubeconfig.yaml` for remote MicroK8s cluster connection
-- All projects are production-ready with comprehensive CI/CD
-- **Remote MicroK8s cluster** - no local Kubernetes installation required
-- Kubernetes deployment uses namespace `petrosa-apps`
-- Health checks are critical for Kubernetes probes
-- Security scanning is integrated into the pipeline
-- **WebSocket connections**: Always implement reconnection logic and error handling
-- **NATS messaging**: Use structured message format with timestamps
-- **GitHub CLI**: Always dump output to `/tmp` files and read from them
-- **VERSION_PLACEHOLDER**: Never replace in Kubernetes manifests - it's part of the deployment system
+- For ecosystem-wide rules and shared patterns: **See master cursorrules**
+- For work tracking and issue creation: **See master § Centralized Work Tracking with GitHub Projects**
+- For NATS topic structure and consumers: **See master § NATS Message Bus**
+- For deployment and scaling guidelines: **See master § Socket Client Configuration**
+- **CRITICAL**: For why horizontal scaling is forbidden: **See master § Deployment Patterns → Socket Client**

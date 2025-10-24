@@ -1,6 +1,6 @@
 {
   "errors": [],
-  "generated_at": "2025-08-20T02:33:59Z",
+  "generated_at": "2025-10-24T13:36:47Z",
   "metrics": {
     "./constants.py": {
       "CONFIDENCE.HIGH": 0,
@@ -11,7 +11,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 66,
+      "loc": 86,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -24,7 +24,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 116,
+      "loc": 200,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -232,7 +232,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 275,
+      "loc": 446,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -258,7 +258,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 1,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 183,
+      "loc": 182,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -271,7 +271,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 137,
+      "loc": 147,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -366,6 +366,32 @@
       "nosec": 0,
       "skipped_tests": 0
     },
+    "./tests/performance/test_performance_benchmarks.py": {
+      "CONFIDENCE.HIGH": 22,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 22,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 474,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "./tests/unit/test_circuit_breaker.py": {
+      "CONFIDENCE.HIGH": 91,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 91,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 403,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
     "./tests/unit/test_message_models.py": {
       "CONFIDENCE.HIGH": 32,
       "CONFIDENCE.LOW": 0,
@@ -375,40 +401,53 @@
       "SEVERITY.LOW": 32,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 153,
+      "loc": 159,
       "nosec": 0,
       "skipped_tests": 0
     },
     "./tests/unit/test_websocket_client.py": {
-      "CONFIDENCE.HIGH": 21,
+      "CONFIDENCE.HIGH": 31,
       "CONFIDENCE.LOW": 0,
       "CONFIDENCE.MEDIUM": 0,
       "CONFIDENCE.UNDEFINED": 0,
       "SEVERITY.HIGH": 0,
-      "SEVERITY.LOW": 21,
+      "SEVERITY.LOW": 31,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 173,
+      "loc": 220,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "./tests/unit/test_websocket_client_comprehensive.py": {
+      "CONFIDENCE.HIGH": 59,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 59,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 700,
       "nosec": 0,
       "skipped_tests": 0
     },
     "_totals": {
-      "CONFIDENCE.HIGH": 55,
+      "CONFIDENCE.HIGH": 237,
       "CONFIDENCE.LOW": 0,
       "CONFIDENCE.MEDIUM": 1,
       "CONFIDENCE.UNDEFINED": 0,
       "SEVERITY.HIGH": 0,
-      "SEVERITY.LOW": 55,
+      "SEVERITY.LOW": 237,
       "SEVERITY.MEDIUM": 1,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 3447,
+      "loc": 5361,
       "nosec": 0,
       "skipped_tests": 0
     }
   },
   "results": [
     {
-      "code": "51 \n52             self.site = web.TCPSite(self.runner, \"0.0.0.0\", self.port)\n53             await self.site.start()\n",
+      "code": "73 \n74             self.site = web.TCPSite(self.runner, \"0.0.0.0\", self.port)\n75             await self.site.start()\n",
       "col_offset": 49,
       "end_col_offset": 58,
       "filename": "./socket_client/health/server.py",
@@ -419,9 +458,9 @@
       },
       "issue_severity": "MEDIUM",
       "issue_text": "Possible binding to all interfaces.",
-      "line_number": 52,
+      "line_number": 74,
       "line_range": [
-        52
+        74
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.7.5/plugins/b104_hardcoded_bind_all_interfaces.html",
       "test_id": "B104",

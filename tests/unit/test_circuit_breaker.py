@@ -58,7 +58,7 @@ class TestAsyncCircuitBreaker:
             failure_threshold=3,
             recovery_timeout=30,
             expected_exception=ValueError,
-            name="test-breaker"
+            name="test-breaker",
         )
 
         assert cb.failure_threshold == 3
@@ -163,7 +163,9 @@ class TestAsyncCircuitBreaker:
         assert cb.state == CircuitState.OPEN
 
         # Should now block calls
-        with pytest.raises(CircuitBreakerOpenError, match="Circuit breaker 'test' is open"):
+        with pytest.raises(
+            CircuitBreakerOpenError, match="Circuit breaker 'test' is open"
+        ):
             await cb.call(failing_function)
 
     @pytest.mark.asyncio
@@ -223,9 +225,7 @@ class TestAsyncCircuitBreaker:
     async def test_different_exception_types_not_counted(self):
         """Test that non-expected exceptions are not counted as failures."""
         cb = AsyncCircuitBreaker(
-            failure_threshold=2,
-            expected_exception=ValueError,
-            name="test"
+            failure_threshold=2, expected_exception=ValueError, name="test"
         )
 
         async def type_error_function():
@@ -287,9 +287,7 @@ class TestAsyncCircuitBreaker:
     def test_get_metrics(self):
         """Test get_metrics method."""
         cb = AsyncCircuitBreaker(
-            failure_threshold=5,
-            recovery_timeout=60,
-            name="test-metrics"
+            failure_threshold=5, recovery_timeout=60, name="test-metrics"
         )
 
         metrics = cb.get_metrics()
@@ -404,11 +402,7 @@ class TestAsyncCircuitBreaker:
         cb = AsyncCircuitBreaker(name="test")
 
         async def complex_return_function():
-            return {
-                "data": [1, 2, 3],
-                "status": "success",
-                "nested": {"key": "value"}
-            }
+            return {"data": [1, 2, 3], "status": "success", "nested": {"key": "value"}}
 
         result = await cb.call(complex_return_function)
 
@@ -499,11 +493,7 @@ class TestCircuitBreakerEdgeCases:
     @pytest.mark.asyncio
     async def test_negative_recovery_timeout(self):
         """Test circuit breaker with negative recovery timeout."""
-        cb = AsyncCircuitBreaker(
-            failure_threshold=1,
-            recovery_timeout=-1,
-            name="test"
-        )
+        cb = AsyncCircuitBreaker(failure_threshold=1, recovery_timeout=-1, name="test")
 
         async def failing_function():
             raise Exception("Test error")
@@ -585,7 +575,7 @@ class TestCircuitBreakerPerformance:
         direct_time = time.time() - start_time
 
         # Circuit breaker overhead should be minimal
-        overhead_ratio = cb_time / direct_time if direct_time > 0 else float('inf')
+        overhead_ratio = cb_time / direct_time if direct_time > 0 else float("inf")
         assert overhead_ratio < 3.0  # Less than 3x overhead
 
     @pytest.mark.asyncio
