@@ -175,6 +175,8 @@ jobs:
     needs: version-and-deploy
     runs-on: ubuntu-latest
     if: always()
+    permissions:
+      contents: none
     steps:
       - name: Notify Status
         run: |
