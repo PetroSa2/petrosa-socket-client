@@ -36,26 +36,26 @@ jobs:
     permissions:
       contents: write
       packages: write
-      
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Configure Git
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
       - name: Get current version
         id: current_version
         run: |
           CURRENT=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "version=$CURRENT" >> $GITHUB_OUTPUT
           echo "Current version: $CURRENT"
-          
+
       - name: Bump version
         id: bump_version
         run: |
@@ -63,25 +63,25 @@ jobs:
           NEW_VERSION=$(./scripts/bump-version.sh "${{ steps.current_version.outputs.version }}" "${{ inputs.version_bump }}")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
-          
+
       - name: Create git tag
         run: |
           git tag -a "${{ steps.bump_version.outputs.new_version }}" -m "Manual deployment to ${{ inputs.environment }}: ${{ inputs.reason }}"
           git push origin "${{ steps.bump_version.outputs.new_version }}"
           echo "✅ Created and pushed tag: ${{ steps.bump_version.outputs.new_version }}"
-          
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-        
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
+
       - name: Extract Docker Metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -89,7 +89,7 @@ jobs:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-socket-client
           tags: |
             type=raw,value=${{ steps.bump_version.outputs.new_version }}
-            
+
       - name: Build and Push Docker Image
         id: build
         uses: docker/build-push-action@v5
@@ -105,12 +105,12 @@ jobs:
             VERSION=${{ steps.bump_version.outputs.new_version }}
             COMMIT_SHA=${{ github.sha }}
             BUILD_DATE=${{ steps.meta.outputs.date }}
-            
+
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: 'v1.28.0'
-          
+
       - name: Configure kubectl for MicroK8s
         run: |
           mkdir -p $HOME/.kube
@@ -118,21 +118,21 @@ jobs:
           chmod 600 $HOME/.kube/config
           kubectl cluster-info --insecure-skip-tls-verify
           kubectl get nodes --insecure-skip-tls-verify
-          
+
       - name: Update Image Tags in Manifests
         run: |
           IMAGE_TAG="${{ steps.bump_version.outputs.new_version }}"
           find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|VERSION_PLACEHOLDER|${IMAGE_TAG}|g"
-          
+
           # Replace the image name to use the correct format with secrets
           find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|yurisa2/petrosa-socket-client|${{ secrets.DOCKERHUB_USERNAME }}/petrosa-socket-client|g"
-          
+
           echo "Updated manifests with image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-socket-client:${IMAGE_TAG}"
-          
+
           # Verify the changes
           echo "Verifying image tag updates:"
           grep -r "image:.*petrosa-socket-client" k8s/ || echo "No image references found"
-          
+
           # Double-check that no VERSION_PLACEHOLDER remain
           PLACEHOLDER_COUNT=$(grep -r "VERSION_PLACEHOLDER" k8s/ | wc -l || echo "0")
           if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
@@ -141,22 +141,22 @@ jobs:
           else
             echo "✅ All image references updated to versioned tag: ${IMAGE_TAG}"
           fi
-          
+
       - name: Apply Kubernetes Manifests
         run: |
           kubectl apply --insecure-skip-tls-verify -f k8s/ -n ${{ env.NAMESPACE }}
-          
+
       - name: Wait for deployment to be ready
         run: |
           kubectl rollout status deployment/petrosa-socket-client -n ${{ env.NAMESPACE }} --timeout=300s --insecure-skip-tls-verify
-          
+
       - name: Verify deployment
         run: |
           echo "🔍 Verifying deployment..."
           kubectl get pods -n ${{ env.NAMESPACE }} -l app=socket-client --insecure-skip-tls-verify
           kubectl get svc -n ${{ env.NAMESPACE }} -l app=socket-client --insecure-skip-tls-verify
           kubectl get ingress -n ${{ env.NAMESPACE }} -l app=socket-client --insecure-skip-tls-verify
-          
+
           echo ""
           echo "📊 Deployment Summary:"
           echo "  ✅ Manual deployment to ${{ inputs.environment }} completed successfully"
@@ -169,7 +169,7 @@ jobs:
           echo ""
           echo "🔍 Verify deployed image version:"
           echo "  kubectl get deployment -n ${{ env.NAMESPACE }} --insecure-skip-tls-verify -o jsonpath='{.items[*].spec.template.spec.containers[*].image}'"
-          
+
   notify:
     name: Notify Deployment Status
     needs: version-and-deploy
