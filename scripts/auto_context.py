@@ -8,7 +8,7 @@ import os
 import sys
 
 
-def read_file_safely(filepath, max_lines=30):
+def read_file_safely(filepath: str, max_lines: int = 30) -> str:
     """Read file safely with line limit"""
     try:
         with open(filepath, encoding="utf-8") as f:
@@ -22,7 +22,7 @@ def read_file_safely(filepath, max_lines=30):
         return f"❌ Error reading {filepath}: {e}"
 
 
-def check_kubeconfig():
+def check_kubeconfig() -> str:
     """Check kubeconfig status"""
     kubeconfig_path = "k8s/kubeconfig.yaml"
     if os.path.exists(kubeconfig_path):

@@ -23,13 +23,13 @@ from socket_client.utils.circuit_breaker import (
 class TestCircuitState:
     """Test cases for CircuitState enum."""
 
-    def test_circuit_state_values(self):
+    def test_circuit_state_values(self) -> None:
         """Test circuit state enum values."""
         assert CircuitState.CLOSED.value == "closed"
         assert CircuitState.OPEN.value == "open"
         assert CircuitState.HALF_OPEN.value == "half_open"
 
-    def test_circuit_state_comparison(self):
+    def test_circuit_state_comparison(self) -> None:
         """Test circuit state comparison."""
         assert CircuitState.CLOSED == CircuitState.CLOSED
         assert CircuitState.CLOSED != CircuitState.OPEN
@@ -40,7 +40,7 @@ class TestCircuitState:
 class TestAsyncCircuitBreaker:
     """Test cases for AsyncCircuitBreaker."""
 
-    def test_initialization_default_parameters(self):
+    def test_initialization_default_parameters(self) -> None:
         """Test circuit breaker initialization with default parameters."""
         cb = AsyncCircuitBreaker()
 
@@ -52,7 +52,7 @@ class TestAsyncCircuitBreaker:
         assert cb.failure_count == 0
         assert cb.last_failure_time == 0
 
-    def test_initialization_custom_parameters(self):
+    def test_initialization_custom_parameters(self) -> None:
         """Test circuit breaker initialization with custom parameters."""
         cb = AsyncCircuitBreaker(
             failure_threshold=3,
@@ -67,7 +67,7 @@ class TestAsyncCircuitBreaker:
         assert cb.name == "test-breaker"
 
     @pytest.mark.asyncio
-    async def test_successful_function_call(self):
+    async def test_successful_function_call(self) -> None:
         """Test successful function execution through circuit breaker."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -81,7 +81,7 @@ class TestAsyncCircuitBreaker:
         assert cb.failure_count == 0
 
     @pytest.mark.asyncio
-    async def test_sync_function_call(self):
+    async def test_sync_function_call(self) -> None:
         """Test synchronous function execution through circuit breaker."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -94,7 +94,7 @@ class TestAsyncCircuitBreaker:
         assert cb.state == CircuitState.CLOSED
 
     @pytest.mark.asyncio
-    async def test_function_call_with_arguments(self):
+    async def test_function_call_with_arguments(self) -> None:
         """Test function execution with arguments and keyword arguments."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -106,7 +106,7 @@ class TestAsyncCircuitBreaker:
         assert result == "a-b-c"
 
     @pytest.mark.asyncio
-    async def test_failure_count_increment(self):
+    async def test_failure_count_increment(self) -> None:
         """Test that failure count increments on exceptions."""
         cb = AsyncCircuitBreaker(failure_threshold=3, name="test")
 
@@ -128,7 +128,7 @@ class TestAsyncCircuitBreaker:
         assert cb.state == CircuitState.CLOSED
 
     @pytest.mark.asyncio
-    async def test_circuit_opens_after_threshold(self):
+    async def test_circuit_opens_after_threshold(self) -> None:
         """Test that circuit opens after failure threshold is reached."""
         cb = AsyncCircuitBreaker(failure_threshold=3, name="test")
 
@@ -148,7 +148,7 @@ class TestAsyncCircuitBreaker:
         assert cb.failure_count == 3
 
     @pytest.mark.asyncio
-    async def test_circuit_breaker_open_blocks_calls(self):
+    async def test_circuit_breaker_open_blocks_calls(self) -> None:
         """Test that open circuit breaker blocks function calls."""
         cb = AsyncCircuitBreaker(failure_threshold=2, name="test")
 
@@ -169,7 +169,7 @@ class TestAsyncCircuitBreaker:
             await cb.call(failing_function)
 
     @pytest.mark.asyncio
-    async def test_circuit_transitions_to_half_open_after_timeout(self):
+    async def test_circuit_transitions_to_half_open_after_timeout(self) -> None:
         """Test transition from OPEN to HALF_OPEN after recovery timeout."""
         cb = AsyncCircuitBreaker(failure_threshold=2, recovery_timeout=1, name="test")
 
@@ -194,7 +194,7 @@ class TestAsyncCircuitBreaker:
         # but now it's OPEN again due to the failure
 
     @pytest.mark.asyncio
-    async def test_circuit_closes_after_successful_half_open_call(self):
+    async def test_circuit_closes_after_successful_half_open_call(self) -> None:
         """Test circuit closes after successful call in HALF_OPEN state."""
         cb = AsyncCircuitBreaker(failure_threshold=2, recovery_timeout=1, name="test")
 
@@ -222,7 +222,7 @@ class TestAsyncCircuitBreaker:
         assert cb.failure_count == 0
 
     @pytest.mark.asyncio
-    async def test_different_exception_types_not_counted(self):
+    async def test_different_exception_types_not_counted(self) -> None:
         """Test that non-expected exceptions are not counted as failures."""
         cb = AsyncCircuitBreaker(
             failure_threshold=2, expected_exception=ValueError, name="test"
@@ -249,7 +249,7 @@ class TestAsyncCircuitBreaker:
         assert cb.state == CircuitState.CLOSED
 
     @pytest.mark.asyncio
-    async def test_successful_call_resets_failure_count(self):
+    async def test_successful_call_resets_failure_count(self) -> None:
         """Test that successful calls reset failure count in CLOSED state."""
         cb = AsyncCircuitBreaker(failure_threshold=3, name="test")
 
@@ -274,7 +274,7 @@ class TestAsyncCircuitBreaker:
         assert cb.failure_count == 0
         assert cb.state == CircuitState.CLOSED
 
-    def test_get_state(self):
+    def test_get_state(self) -> None:
         """Test get_state method."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -284,7 +284,7 @@ class TestAsyncCircuitBreaker:
         cb.state = CircuitState.OPEN
         assert cb.get_state() == CircuitState.OPEN
 
-    def test_get_metrics(self):
+    def test_get_metrics(self) -> None:
         """Test get_metrics method."""
         cb = AsyncCircuitBreaker(
             failure_threshold=5, recovery_timeout=60, name="test-metrics"
@@ -301,7 +301,7 @@ class TestAsyncCircuitBreaker:
         assert "time_since_last_failure" in metrics
 
     @pytest.mark.asyncio
-    async def test_concurrent_calls(self):
+    async def test_concurrent_calls(self) -> None:
         """Test circuit breaker behavior with concurrent calls."""
         cb = AsyncCircuitBreaker(failure_threshold=3, name="test")
 
@@ -318,7 +318,7 @@ class TestAsyncCircuitBreaker:
         assert cb.failure_count == 0
 
     @pytest.mark.asyncio
-    async def test_concurrent_failures(self):
+    async def test_concurrent_failures(self) -> None:
         """Test circuit breaker with concurrent failures."""
         cb = AsyncCircuitBreaker(failure_threshold=3, name="test")
 
@@ -337,7 +337,7 @@ class TestAsyncCircuitBreaker:
         assert cb.failure_count >= cb.failure_threshold
 
     @pytest.mark.asyncio
-    async def test_recovery_timeout_precision(self):
+    async def test_recovery_timeout_precision(self) -> None:
         """Test recovery timeout precision."""
         cb = AsyncCircuitBreaker(failure_threshold=1, recovery_timeout=0.5, name="test")
 
@@ -363,7 +363,7 @@ class TestAsyncCircuitBreaker:
             await cb.call(failing_function)
 
     @pytest.mark.asyncio
-    async def test_thread_safety_with_asyncio_lock(self):
+    async def test_thread_safety_with_asyncio_lock(self) -> None:
         """Test that the circuit breaker uses asyncio.Lock for thread safety."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -378,7 +378,7 @@ class TestAsyncCircuitBreaker:
         assert result == "success"
 
     @pytest.mark.asyncio
-    async def test_exception_propagation(self):
+    async def test_exception_propagation(self) -> None:
         """Test that original exceptions are properly propagated."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -397,7 +397,7 @@ class TestAsyncCircuitBreaker:
         assert exc_info.value.code == 500
 
     @pytest.mark.asyncio
-    async def test_function_return_value_preservation(self):
+    async def test_function_return_value_preservation(self) -> None:
         """Test that function return values are preserved."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -411,7 +411,7 @@ class TestAsyncCircuitBreaker:
         assert result["nested"]["key"] == "value"
 
     @pytest.mark.asyncio
-    async def test_last_failure_time_tracking(self):
+    async def test_last_failure_time_tracking(self) -> None:
         """Test that last failure time is properly tracked."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -435,21 +435,21 @@ class TestAsyncCircuitBreaker:
 class TestGlobalCircuitBreakers:
     """Test cases for global circuit breaker instances."""
 
-    def test_websocket_circuit_breaker_configuration(self):
+    def test_websocket_circuit_breaker_configuration(self) -> None:
         """Test websocket circuit breaker configuration."""
         assert websocket_circuit_breaker.name == "websocket"
         assert websocket_circuit_breaker.failure_threshold == 5
         assert websocket_circuit_breaker.recovery_timeout == 60
         assert websocket_circuit_breaker.expected_exception == Exception
 
-    def test_nats_circuit_breaker_configuration(self):
+    def test_nats_circuit_breaker_configuration(self) -> None:
         """Test NATS circuit breaker configuration."""
         assert nats_circuit_breaker.name == "nats"
         assert nats_circuit_breaker.failure_threshold == 3
         assert nats_circuit_breaker.recovery_timeout == 30
         assert nats_circuit_breaker.expected_exception == Exception
 
-    def test_global_instances_are_different(self):
+    def test_global_instances_are_different(self) -> None:
         """Test that global instances are separate."""
         assert websocket_circuit_breaker is not nats_circuit_breaker
         assert websocket_circuit_breaker.name != nats_circuit_breaker.name
@@ -459,14 +459,14 @@ class TestGlobalCircuitBreakers:
 class TestCircuitBreakerOpenError:
     """Test cases for CircuitBreakerOpenError."""
 
-    def test_circuit_breaker_open_error_inheritance(self):
+    def test_circuit_breaker_open_error_inheritance(self) -> None:
         """Test CircuitBreakerOpenError inheritance."""
         error = CircuitBreakerOpenError("Test message")
 
         assert isinstance(error, Exception)
         assert str(error) == "Test message"
 
-    def test_circuit_breaker_open_error_with_custom_message(self):
+    def test_circuit_breaker_open_error_with_custom_message(self) -> None:
         """Test CircuitBreakerOpenError with custom message."""
         message = "Circuit 'test-circuit' is open due to failures"
         error = CircuitBreakerOpenError(message)
@@ -479,7 +479,7 @@ class TestCircuitBreakerEdgeCases:
     """Test edge cases and error conditions."""
 
     @pytest.mark.asyncio
-    async def test_zero_failure_threshold(self):
+    async def test_zero_failure_threshold(self) -> None:
         """Test circuit breaker with zero failure threshold."""
         cb = AsyncCircuitBreaker(failure_threshold=0, name="test")
 
@@ -491,7 +491,7 @@ class TestCircuitBreakerEdgeCases:
         assert result == "success"
 
     @pytest.mark.asyncio
-    async def test_negative_recovery_timeout(self):
+    async def test_negative_recovery_timeout(self) -> None:
         """Test circuit breaker with negative recovery timeout."""
         cb = AsyncCircuitBreaker(failure_threshold=1, recovery_timeout=-1, name="test")
 
@@ -509,7 +509,7 @@ class TestCircuitBreakerEdgeCases:
             await cb.call(failing_function)
 
     @pytest.mark.asyncio
-    async def test_very_large_failure_threshold(self):
+    async def test_very_large_failure_threshold(self) -> None:
         """Test circuit breaker with very large failure threshold."""
         cb = AsyncCircuitBreaker(failure_threshold=1000000, name="test")
 
@@ -525,7 +525,7 @@ class TestCircuitBreakerEdgeCases:
         assert cb.failure_count == 100
 
     @pytest.mark.asyncio
-    async def test_function_that_returns_none(self):
+    async def test_function_that_returns_none(self) -> None:
         """Test function that returns None."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -536,7 +536,7 @@ class TestCircuitBreakerEdgeCases:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_function_that_raises_keyboard_interrupt(self):
+    async def test_function_that_raises_keyboard_interrupt(self) -> None:
         """Test function that raises KeyboardInterrupt."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -555,7 +555,7 @@ class TestCircuitBreakerPerformance:
     """Performance tests for circuit breaker."""
 
     @pytest.mark.asyncio
-    async def test_performance_overhead(self):
+    async def test_performance_overhead(self) -> None:
         """Test performance overhead of circuit breaker."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -579,7 +579,7 @@ class TestCircuitBreakerPerformance:
         assert overhead_ratio < 3.0  # Less than 3x overhead
 
     @pytest.mark.asyncio
-    async def test_memory_usage_stability(self):
+    async def test_memory_usage_stability(self) -> None:
         """Test that circuit breaker doesn't leak memory."""
         cb = AsyncCircuitBreaker(name="test")
 

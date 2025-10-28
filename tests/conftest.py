@@ -82,7 +82,7 @@ def sample_depth_message() -> dict:
 
 
 @pytest.fixture
-def mock_websocket():
+def mock_websocket() -> None:
     """Mock WebSocket connection."""
     mock_ws = AsyncMock()
     mock_ws.closed = False
@@ -92,7 +92,7 @@ def mock_websocket():
 
 
 @pytest.fixture
-def mock_nats_client():
+def mock_nats_client() -> None:
     """Mock NATS client."""
     mock_nats = AsyncMock()
     mock_nats.is_closed = False
@@ -102,7 +102,7 @@ def mock_nats_client():
 
 
 @pytest.fixture
-def websocket_client(mock_websocket, mock_nats_client):
+def websocket_client(mock_websocket, mock_nats_client) -> None:
     """WebSocket client with mocked dependencies."""
     client = BinanceWebSocketClient(
         ws_url="wss://test.binance.com",
@@ -138,7 +138,7 @@ def test_config() -> dict:
 
 
 @pytest.fixture
-def event_loop():
+def event_loop() -> None:
     """Create an instance of the default event loop for the test session."""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
@@ -146,7 +146,7 @@ def event_loop():
 
 
 @pytest.fixture
-def mock_websockets_connect(monkeypatch):
+def mock_websockets_connect(monkeypatch) -> None:
     """Mock websockets.connect."""
     mock_connect = AsyncMock()
     monkeypatch.setattr("websockets.connect", mock_connect)
@@ -154,7 +154,7 @@ def mock_websockets_connect(monkeypatch):
 
 
 @pytest.fixture
-def mock_nats_connect(monkeypatch):
+def mock_nats_connect(monkeypatch) -> None:
     """Mock nats.connect."""
     mock_connect = AsyncMock()
     monkeypatch.setattr("nats.connect", mock_connect)
@@ -162,7 +162,7 @@ def mock_nats_connect(monkeypatch):
 
 
 @pytest.fixture
-def mock_aiohttp_client_session(monkeypatch):
+def mock_aiohttp_client_session(monkeypatch) -> None:
     """Mock aiohttp ClientSession."""
     mock_session = AsyncMock()
     mock_session.get = AsyncMock()

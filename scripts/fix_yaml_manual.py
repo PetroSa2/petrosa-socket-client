@@ -4,7 +4,7 @@ Script to manually fix YAML formatting issues in MongoDB production manifest
 """
 
 
-def fix_yaml_manual(file_path):
+def fix_yaml_manual(file_path) -> None:
     """Manually fix YAML formatting issues."""
 
     with open(file_path) as f:
@@ -27,7 +27,7 @@ def fix_yaml_manual(file_path):
     print(f"✅ Manually fixed YAML formatting in {file_path}")
 
 
-def main():
+def main() -> None:
     """Main function to fix YAML formatting."""
 
     files_to_fix = ["k8s/klines-mongodb-production.yaml"]

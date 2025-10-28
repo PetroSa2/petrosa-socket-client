@@ -45,7 +45,7 @@ def assert_missing_field_error(exc_info, field_name: str) -> None:
 class TestWebSocketMessage:
     """Test WebSocket message model."""
 
-    def test_create_websocket_message(self):
+    def test_create_websocket_message(self) -> None:
         """Test creating a basic WebSocket message."""
         message = WebSocketMessage(
             stream="btcusdt@trade", data={"price": "50000", "quantity": "1.0"}
@@ -56,7 +56,7 @@ class TestWebSocketMessage:
         assert isinstance(message.timestamp, datetime)
         assert message.message_id is None
 
-    def test_create_message_with_id(self):
+    def test_create_message_with_id(self) -> None:
         """Test creating a message with custom ID."""
         message = WebSocketMessage(
             stream="btcusdt@trade", data={"price": "50000"}, message_id="test-123"
@@ -64,7 +64,7 @@ class TestWebSocketMessage:
 
         assert message.message_id == "test-123"
 
-    def test_to_nats_message(self):
+    def test_to_nats_message(self) -> None:
         """Test converting to NATS message format."""
         message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
 
@@ -76,7 +76,7 @@ class TestWebSocketMessage:
         assert nats_message["source"] == "binance-websocket"
         assert nats_message["version"] == "1.0"
 
-    def test_to_json(self):
+    def test_to_json(self) -> None:
         """Test converting to JSON string."""
         message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
 
@@ -95,7 +95,7 @@ class TestWebSocketMessage:
 class TestTradeMessage:
     """Test trade message model."""
 
-    def test_create_trade_message(self):
+    def test_create_trade_message(self) -> None:
         """Test creating a trade message."""
         trade_data = {
             "e": "trade",
@@ -122,7 +122,7 @@ class TestTradeMessage:
 class TestTickerMessage:
     """Test ticker message model."""
 
-    def test_create_ticker_message(self):
+    def test_create_ticker_message(self) -> None:
         """Test creating a ticker message."""
         ticker_data = {
             "e": "24hrTicker",
@@ -143,7 +143,7 @@ class TestTickerMessage:
 class TestDepthMessage:
     """Test depth message model."""
 
-    def test_create_depth_message(self):
+    def test_create_depth_message(self) -> None:
         """Test creating a depth message."""
         depth_data = {
             "e": "depthUpdate",
@@ -166,7 +166,7 @@ class TestDepthMessage:
 class TestCreateMessage:
     """Test message creation factory function."""
 
-    def test_create_trade_message(self):
+    def test_create_trade_message(self) -> None:
         """Test creating a trade message via factory."""
         data = {"e": "trade", "s": "BTCUSDT"}
         message = create_message("btcusdt@trade", data)
@@ -174,7 +174,7 @@ class TestCreateMessage:
         assert isinstance(message, TradeMessage)
         assert message.stream == "btcusdt@trade"
 
-    def test_create_ticker_message(self):
+    def test_create_ticker_message(self) -> None:
         """Test creating a ticker message via factory."""
         data = {"e": "24hrTicker", "s": "BTCUSDT"}
         message = create_message("btcusdt@ticker", data)
@@ -182,7 +182,7 @@ class TestCreateMessage:
         assert isinstance(message, TickerMessage)
         assert message.stream == "btcusdt@ticker"
 
-    def test_create_depth_message(self):
+    def test_create_depth_message(self) -> None:
         """Test creating a depth message via factory."""
         data = {"e": "depthUpdate", "s": "BTCUSDT"}
         message = create_message("btcusdt@depth20@100ms", data)
@@ -190,7 +190,7 @@ class TestCreateMessage:
         assert isinstance(message, DepthMessage)
         assert message.stream == "btcusdt@depth20@100ms"
 
-    def test_create_generic_message(self):
+    def test_create_generic_message(self) -> None:
         """Test creating a generic message for unknown stream."""
         data = {"test": "data"}
         message = create_message("unknown@stream", data)
@@ -203,7 +203,7 @@ class TestCreateMessage:
 class TestValidateMessage:
     """Test message validation."""
 
-    def test_validate_valid_message(self):
+    def test_validate_valid_message(self) -> None:
         """Test validating a valid message."""
         message_dict = {
             "stream": "btcusdt@trade",
@@ -214,7 +214,7 @@ class TestValidateMessage:
         assert isinstance(message, TradeMessage)
         assert message.stream == "btcusdt@trade"
 
-    def test_validate_message_missing_stream(self):
+    def test_validate_message_missing_stream(self) -> None:
         """Test validating message with missing stream."""
         message_dict = {"data": {"e": "trade"}}
 
@@ -222,7 +222,7 @@ class TestValidateMessage:
             validate_message(message_dict)
         assert_missing_field_error(exc_info, "stream")
 
-    def test_validate_message_missing_data(self):
+    def test_validate_message_missing_data(self) -> None:
         """Test validating message with missing data."""
         message_dict = {"stream": "btcusdt@trade"}
 
@@ -230,7 +230,7 @@ class TestValidateMessage:
             validate_message(message_dict)
         assert_missing_field_error(exc_info, "data")
 
-    def test_validate_message_invalid_format(self):
+    def test_validate_message_invalid_format(self) -> None:
         """Test validating message with invalid format."""
         message_dict = "invalid"
 
@@ -245,7 +245,7 @@ class TestTraceContextPropagation:
     """Test trace context propagation in messages."""
 
     @pytest.fixture(scope="function")
-    def tracer_provider(self):
+    def tracer_provider(self) -> None:
         """Create a tracer provider with in-memory exporter for testing."""
         exporter = InMemorySpanExporter()
         provider = TracerProvider()
@@ -254,11 +254,11 @@ class TestTraceContextPropagation:
         return provider
 
     @pytest.fixture(scope="function")
-    def tracer(self, tracer_provider):
+    def tracer(self, tracer_provider) -> None:
         """Get a tracer instance."""
         return trace.get_tracer(__name__)
 
-    def test_to_nats_message_includes_trace_context(self, tracer):
+    def test_to_nats_message_includes_trace_context(self, tracer) -> None:
         """Test that to_nats_message() includes trace context when available."""
         from socket_client.models.message import TRACE_PROPAGATION_AVAILABLE
 
@@ -279,7 +279,7 @@ class TestTraceContextPropagation:
             carrier = nats_message["_otel_trace_context"]
             assert "traceparent" in carrier
 
-    def test_to_nats_message_without_active_span(self):
+    def test_to_nats_message_without_active_span(self) -> None:
         """Test that to_nats_message() works even without active span."""
         from socket_client.models.message import TRACE_PROPAGATION_AVAILABLE
 
@@ -294,7 +294,7 @@ class TestTraceContextPropagation:
         # Should still include trace context field (may be empty)
         assert "_otel_trace_context" in nats_message
 
-    def test_to_nats_message_preserves_original_fields(self, tracer):
+    def test_to_nats_message_preserves_original_fields(self, tracer) -> None:
         """Test that trace context injection preserves all original fields."""
         from socket_client.models.message import TRACE_PROPAGATION_AVAILABLE
 
@@ -320,7 +320,7 @@ class TestTraceContextPropagation:
             # Plus trace context
             assert "_otel_trace_context" in nats_message
 
-    def test_to_json_includes_trace_context(self, tracer):
+    def test_to_json_includes_trace_context(self, tracer) -> None:
         """Test that to_json() includes trace context in serialized output."""
         import json
 
@@ -339,7 +339,7 @@ class TestTraceContextPropagation:
             assert "_otel_trace_context" in parsed
             assert isinstance(parsed["_otel_trace_context"], dict)
 
-    def test_trace_context_roundtrip(self, tracer):
+    def test_trace_context_roundtrip(self, tracer) -> None:
         """
         Test that trace context can be round-tripped through message serialization.
 
@@ -393,7 +393,7 @@ class TestTraceContextFallback:
     """Test that messages work even when trace propagation is not available."""
 
     @mock.patch("socket_client.models.message.TRACE_PROPAGATION_AVAILABLE", False)
-    def test_to_nats_message_without_trace_propagation(self):
+    def test_to_nats_message_without_trace_propagation(self) -> None:
         """Test that messages work when trace propagation library is not available."""
         message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
 
@@ -408,7 +408,7 @@ class TestTraceContextFallback:
         # Should NOT have trace context (library not available)
         assert "_otel_trace_context" not in nats_message
 
-    def test_to_nats_message_with_trace_propagation_mock(self):
+    def test_to_nats_message_with_trace_propagation_mock(self) -> None:
         """Test that inject_trace_context is called when available (mocked)."""
         import socket_client.models.message as message_module
 
@@ -440,7 +440,7 @@ class TestTraceContextFallback:
             assert nats_message["stream"] == "btcusdt@trade"
             assert nats_message["data"] == {"price": "50000"}
 
-    def test_to_json_with_trace_propagation_mock(self):
+    def test_to_json_with_trace_propagation_mock(self) -> None:
         """Test that to_json() includes trace context when available (mocked)."""
         import json
 

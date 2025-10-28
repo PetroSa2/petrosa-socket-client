@@ -21,7 +21,7 @@ except ImportError:
     import nats
 
 
-async def monitor_nats_messages():
+async def monitor_nats_messages() -> None:
     """Monitor NATS messages for binance extraction events"""
 
     # NATS server URL - try different options

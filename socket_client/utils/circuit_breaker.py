@@ -35,7 +35,7 @@ class AsyncCircuitBreaker:
         recovery_timeout: int = 60,
         expected_exception: type = Exception,
         name: str = "default",
-    ):
+    ) -> None:
         """
         Initialize the circuit breaker.
 
@@ -103,7 +103,7 @@ class AsyncCircuitBreaker:
             await self._on_failure()
             raise
 
-    async def _on_success(self):
+    async def _on_success(self) -> None:
         """Handle successful execution."""
         async with self._lock:
             if self.state == CircuitState.HALF_OPEN:
@@ -113,7 +113,7 @@ class AsyncCircuitBreaker:
                 )
             self.failure_count = 0
 
-    async def _on_failure(self):
+    async def _on_failure(self) -> None:
         """Handle failed execution."""
         async with self._lock:
             self.failure_count += 1

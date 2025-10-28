@@ -91,23 +91,23 @@ def get_logger(name: Optional[str] = None) -> structlog.BoundLogger:
 class LoggerMixin:
     """Mixin class to add logging capabilities to other classes."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize the mixin."""
         super().__init__(*args, **kwargs)
         self.logger = get_logger(self.__class__.__name__)
 
-    def log_info(self, message: str, **kwargs):
+    def log_info(self, message: str, **kwargs) -> None:
         """Log an info message."""
         self.logger.info(message, **kwargs)
 
-    def log_error(self, message: str, **kwargs):
+    def log_error(self, message: str, **kwargs) -> None:
         """Log an error message."""
         self.logger.error(message, **kwargs)
 
-    def log_warning(self, message: str, **kwargs):
+    def log_warning(self, message: str, **kwargs) -> None:
         """Log a warning message."""
         self.logger.warning(message, **kwargs)
 
-    def log_debug(self, message: str, **kwargs):
+    def log_debug(self, message: str, **kwargs) -> None:
         """Log a debug message."""
         self.logger.debug(message, **kwargs)

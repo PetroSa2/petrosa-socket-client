@@ -23,7 +23,7 @@ from utils.messaging import (  # noqa: E402
 import constants  # noqa: E402
 
 
-def test_single_symbol_messaging():
+def test_single_symbol_messaging() -> None:
     """Test sending a single symbol extraction completion message."""
     logger = get_logger(__name__)
     logger.info("Testing single symbol NATS messaging...")
@@ -48,7 +48,7 @@ def test_single_symbol_messaging():
         return False
 
 
-def test_batch_messaging():
+def test_batch_messaging() -> None:
     """Test sending a batch extraction completion message."""
     logger = get_logger(__name__)
     logger.info("Testing batch NATS messaging...")
@@ -73,7 +73,7 @@ def test_batch_messaging():
         return False
 
 
-def test_error_messaging():
+def test_error_messaging() -> None:
     """Test sending a message with errors."""
     logger = get_logger(__name__)
     logger.info("Testing error NATS messaging...")
@@ -98,7 +98,7 @@ def test_error_messaging():
         return False
 
 
-def test_gap_filling_messaging():
+def test_gap_filling_messaging() -> None:
     """Test sending a gap filling completion message."""
     logger = get_logger(__name__)
     logger.info("Testing gap filling NATS messaging...")
@@ -123,7 +123,7 @@ def test_gap_filling_messaging():
         return False
 
 
-def main():
+def main() -> None:
     """Main test function."""
     # Setup logging
     setup_logging(level="INFO")
