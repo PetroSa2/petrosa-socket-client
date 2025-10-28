@@ -30,6 +30,17 @@ except ImportError:
     OTEL_AVAILABLE = False
 
 
+def assert_missing_field_error(exc_info, field_name: str) -> None:
+    """Helper to assert validation error for missing fields.
+    
+    Args:
+        exc_info: Exception info from pytest.raises()
+        field_name: Name of the missing field to check for
+    """
+    assert "Missing required field" in str(exc_info.value)
+    assert field_name.lower() in str(exc_info.value).lower()
+
+
 @pytest.mark.unit
 class TestWebSocketMessage:
     """Test WebSocket message model."""
@@ -207,22 +218,25 @@ class TestValidateMessage:
         """Test validating message with missing stream."""
         message_dict = {"data": {"e": "trade"}}
 
-        with pytest.raises(ValueError, match="Missing required field"):
+        with pytest.raises(ValueError) as exc_info:
             validate_message(message_dict)
+        assert_missing_field_error(exc_info, "stream")
 
     def test_validate_message_missing_data(self):
         """Test validating message with missing data."""
         message_dict = {"stream": "btcusdt@trade"}
 
-        with pytest.raises(ValueError, match="Missing required field"):
+        with pytest.raises(ValueError) as exc_info:
             validate_message(message_dict)
+        assert_missing_field_error(exc_info, "data")
 
     def test_validate_message_invalid_format(self):
         """Test validating message with invalid format."""
         message_dict = "invalid"
 
-        with pytest.raises(ValueError, match="Invalid message format"):
+        with pytest.raises(ValueError) as exc_info:
             validate_message(message_dict)
+        assert "Invalid message format" in str(exc_info.value)
 
 
 @pytest.mark.unit
