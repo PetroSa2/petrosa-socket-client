@@ -207,22 +207,27 @@ class TestValidateMessage:
         """Test validating message with missing stream."""
         message_dict = {"data": {"e": "trade"}}
 
-        with pytest.raises(ValueError, match="Missing required field"):
+        with pytest.raises(ValueError) as exc_info:
             validate_message(message_dict)
+        assert "Missing required field" in str(exc_info.value)
+        assert "stream" in str(exc_info.value).lower()
 
     def test_validate_message_missing_data(self):
         """Test validating message with missing data."""
         message_dict = {"stream": "btcusdt@trade"}
 
-        with pytest.raises(ValueError, match="Missing required field"):
+        with pytest.raises(ValueError) as exc_info:
             validate_message(message_dict)
+        assert "Missing required field" in str(exc_info.value)
+        assert "data" in str(exc_info.value).lower()
 
     def test_validate_message_invalid_format(self):
         """Test validating message with invalid format."""
         message_dict = "invalid"
 
-        with pytest.raises(ValueError, match="Invalid message format"):
+        with pytest.raises(ValueError) as exc_info:
             validate_message(message_dict)
+        assert "Invalid message format" in str(exc_info.value)
 
 
 @pytest.mark.unit
