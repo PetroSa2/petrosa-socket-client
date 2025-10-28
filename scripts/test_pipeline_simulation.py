@@ -52,7 +52,7 @@ class PipelineSimulator:
         if duration > 0:
             self.test_results["performance_metrics"][test_name] = f"{duration:.3f}s"
 
-    def test_environment_configurations(self) -> None:
+    def test_environment_configurations(self) -> bool:
         """Test different environment configurations."""
         print("\n🌍 Testing Environment Configurations...")
 
@@ -146,7 +146,7 @@ class PipelineSimulator:
             duration = time.time() - start_time
             self.log_test("Custom Environment Variables", False, str(e), duration)
 
-    def test_telemetry_initialization(self) -> None:
+    def test_telemetry_initialization(self) -> bool:
         """Test OpenTelemetry initialization with different scenarios."""
         print("\n🔧 Testing Telemetry Initialization...")
 
@@ -190,7 +190,7 @@ class PipelineSimulator:
             duration = time.time() - start_time
             self.log_test("TelemetryManager Init", False, str(e), duration)
 
-    def test_instrumentation_coverage(self) -> None:
+    def test_instrumentation_coverage(self) -> bool:
         """Test that all required instrumentations are available."""
         print("\n📦 Testing Instrumentation Coverage...")
 
@@ -216,7 +216,7 @@ class PipelineSimulator:
                     f"{name.title()} Instrumentation", False, str(e), duration
                 )
 
-    def test_job_initialization(self) -> None:
+    def test_job_initialization(self) -> bool:
         """Test that all job files can be imported and initialized."""
         print("\n🏃‍♂️ Testing Job Initialization...")
 
@@ -240,7 +240,7 @@ class PipelineSimulator:
                 duration = time.time() - start_time
                 self.log_test(f"{job_name} Import", False, str(e), duration)
 
-    def test_kubernetes_configuration(self) -> None:
+    def test_kubernetes_configuration(self) -> bool:
         """Test Kubernetes configuration files."""
         print("\n☸️  Testing Kubernetes Configuration...")
 
@@ -298,7 +298,7 @@ class PipelineSimulator:
                 duration = time.time() - start_time
                 self.log_test(f"K8s {description}", False, str(e), duration)
 
-    def test_error_scenarios(self) -> None:
+    def test_error_scenarios(self) -> bool:
         """Test error handling scenarios."""
         print("\n🚨 Testing Error Scenarios...")
 
@@ -356,7 +356,7 @@ class PipelineSimulator:
             duration = time.time() - start_time
             self.log_test("Invalid Service Names", False, str(e), duration)
 
-    def test_performance_benchmarks(self) -> None:
+    def test_performance_benchmarks(self) -> bool:
         """Test performance benchmarks."""
         print("\n⚡ Testing Performance Benchmarks...")
 
@@ -454,7 +454,7 @@ class PipelineSimulator:
             )
             return False
 
-    def run_full_simulation(self) -> None:
+    def run_full_simulation(self) -> bool:
         """Run the complete pipeline simulation."""
         print("🚀 Starting OpenTelemetry Pipeline Simulation")
         print("=" * 60)

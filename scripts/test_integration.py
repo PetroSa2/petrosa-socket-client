@@ -12,7 +12,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 
-def test_job_telemetry_setup() -> None:
+def test_job_telemetry_setup() -> bool:
     """Test that each job properly sets up telemetry."""
     print("🧪 Testing Job Telemetry Setup...")
 
@@ -42,7 +42,7 @@ def test_job_telemetry_setup() -> None:
     return True
 
 
-def test_telemetry_functions() -> None:
+def test_telemetry_functions() -> bool:
     """Test telemetry-related functions."""
     print("\n🔧 Testing Telemetry Functions...")
 
@@ -72,7 +72,7 @@ def test_telemetry_functions() -> None:
         return False
 
 
-def test_environment_variables() -> None:
+def test_environment_variables() -> bool:
     """Test environment variable handling."""
     print("\n🌍 Testing Environment Variables...")
 
@@ -99,7 +99,7 @@ def test_environment_variables() -> None:
         return False
 
 
-def test_kubernetes_readiness() -> None:
+def test_kubernetes_readiness() -> bool:
     """Test Kubernetes deployment readiness."""
     print("\n☸️  Testing Kubernetes Readiness...")
 

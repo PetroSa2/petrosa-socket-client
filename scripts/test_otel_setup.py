@@ -11,7 +11,7 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
 
-def test_imports() -> None:
+def test_imports() -> bool:
     """Test that all required modules can be imported."""
     print("🔍 Testing imports...")
 
@@ -41,7 +41,7 @@ def test_imports() -> None:
     return True
 
 
-def test_otel_setup() -> None:
+def test_otel_setup() -> bool:
     """Test OpenTelemetry setup."""
     print("\n🔧 Testing OpenTelemetry setup...")
 
@@ -61,7 +61,7 @@ def test_otel_setup() -> None:
         return False
 
 
-def test_instrumentation_packages() -> None:
+def test_instrumentation_packages() -> bool:
     """Test that required instrumentation packages are available."""
     print("\n📦 Testing instrumentation packages...")
 

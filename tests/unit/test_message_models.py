@@ -254,7 +254,7 @@ class TestTraceContextPropagation:
         return provider
 
     @pytest.fixture(scope="function")
-    def tracer(self, tracer_provider) -> None:
+    def tracer(self, tracer_provider):  # type: ignore[no-untyped-def]
         """Get a tracer instance."""
         return trace.get_tracer(__name__)
 

@@ -98,7 +98,7 @@ def test_telemetry() -> bool:
         return False
 
 
-def main() -> Any:
+def main() -> int:
     """Main test function."""
     logger.info("🚀 Starting OpenTelemetry test...")
 

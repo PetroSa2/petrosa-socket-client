@@ -100,7 +100,7 @@ class ProductionEnvironmentSimulator:
         self.test_results["environment_configured"] = True
         return True
 
-    def test_telemetry_initialization(self) -> None:
+    def test_telemetry_initialization(self) -> bool:
         """Test telemetry initialization in production environment."""
         print("\n🔧 Testing telemetry initialization...")
 
@@ -146,7 +146,7 @@ class ProductionEnvironmentSimulator:
             print(f"❌ Telemetry initialization failed: {e}")
             return False
 
-    def test_job_readiness(self) -> None:
+    def test_job_readiness(self) -> bool:
         """Test that all jobs are ready for production."""
         print("\n🏃‍♂️ Testing job readiness...")
 
@@ -178,7 +178,7 @@ class ProductionEnvironmentSimulator:
         self.test_results["jobs_ready"] = all_ready
         return all_ready
 
-    def test_kubernetes_configuration(self) -> None:
+    def test_kubernetes_configuration(self) -> bool:
         """Test Kubernetes configuration readiness."""
         print("\n☸️  Testing Kubernetes configuration...")
 
@@ -249,7 +249,7 @@ class ProductionEnvironmentSimulator:
             print(f"❌ Kubernetes configuration test failed: {e}")
             return False
 
-    def test_new_relic_integration(self) -> None:
+    def test_new_relic_integration(self) -> bool:
         """Test New Relic integration readiness."""
         print("\n📊 Testing New Relic integration...")
 
@@ -321,7 +321,7 @@ class ProductionEnvironmentSimulator:
             print(f"❌ Kubernetes environment detection failed: {e}")
             return False
 
-    def run_production_simulation(self) -> None:
+    def run_production_simulation(self) -> bool:
         """Run the complete production simulation."""
         print("🏭 PRODUCTION ENVIRONMENT SIMULATION")
         print("=" * 60)

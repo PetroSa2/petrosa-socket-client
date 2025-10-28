@@ -37,7 +37,7 @@ class WebSocketMessage(BaseModel):
         use_enum_values = True
 
     @validator("timestamp", pre=True)
-    def parse_timestamp(cls, v) -> None:
+    def parse_timestamp(cls, v):  # type: ignore[no-untyped-def]
         """Parse timestamp from various formats."""
         if isinstance(v, str):
             # Remove Z suffix if present and parse

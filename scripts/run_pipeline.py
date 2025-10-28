@@ -394,7 +394,7 @@ class PipelineRunner:
                 self.telemetry_manager.shutdown()
 
 
-def parse_arguments() -> None:
+def parse_arguments():  # type: ignore[no-untyped-def]
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Petrosa Binance Data Extractor Pipeline Runner",
