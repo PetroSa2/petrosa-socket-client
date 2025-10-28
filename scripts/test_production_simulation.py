@@ -35,7 +35,7 @@ class ProductionEnvironmentSimulator:
             "production_ready": False,
         }
 
-    def backup_environment(self):
+    def backup_environment(self) -> None:
         """Backup current environment variables."""
         env_vars_to_test = [
             "ENABLE_OTEL",
@@ -55,7 +55,7 @@ class ProductionEnvironmentSimulator:
         for var in env_vars_to_test:
             self.original_env[var] = os.getenv(var)
 
-    def restore_environment(self):
+    def restore_environment(self) -> None:
         """Restore original environment variables."""
         for var, value in self.original_env.items():
             if value is None:
@@ -63,7 +63,7 @@ class ProductionEnvironmentSimulator:
             else:
                 os.environ[var] = value
 
-    def setup_production_environment(self):
+    def setup_production_environment(self) -> None:
         """Set up production-like environment variables."""
         print("🌍 Setting up production environment...")
 
@@ -100,7 +100,7 @@ class ProductionEnvironmentSimulator:
         self.test_results["environment_configured"] = True
         return True
 
-    def test_telemetry_initialization(self):
+    def test_telemetry_initialization(self) -> bool:
         """Test telemetry initialization in production environment."""
         print("\n🔧 Testing telemetry initialization...")
 
@@ -146,7 +146,7 @@ class ProductionEnvironmentSimulator:
             print(f"❌ Telemetry initialization failed: {e}")
             return False
 
-    def test_job_readiness(self):
+    def test_job_readiness(self) -> bool:
         """Test that all jobs are ready for production."""
         print("\n🏃‍♂️ Testing job readiness...")
 
@@ -178,7 +178,7 @@ class ProductionEnvironmentSimulator:
         self.test_results["jobs_ready"] = all_ready
         return all_ready
 
-    def test_kubernetes_configuration(self):
+    def test_kubernetes_configuration(self) -> bool:
         """Test Kubernetes configuration readiness."""
         print("\n☸️  Testing Kubernetes configuration...")
 
@@ -249,7 +249,7 @@ class ProductionEnvironmentSimulator:
             print(f"❌ Kubernetes configuration test failed: {e}")
             return False
 
-    def test_new_relic_integration(self):
+    def test_new_relic_integration(self) -> bool:
         """Test New Relic integration readiness."""
         print("\n📊 Testing New Relic integration...")
 
@@ -291,7 +291,7 @@ class ProductionEnvironmentSimulator:
             print(f"❌ New Relic integration test failed: {e}")
             return False
 
-    def simulate_kubernetes_deployment(self):
+    def simulate_kubernetes_deployment(self) -> None:
         """Simulate a Kubernetes deployment scenario."""
         print("\n🚀 Simulating Kubernetes deployment...")
 
@@ -321,7 +321,7 @@ class ProductionEnvironmentSimulator:
             print(f"❌ Kubernetes environment detection failed: {e}")
             return False
 
-    def run_production_simulation(self):
+    def run_production_simulation(self) -> bool:
         """Run the complete production simulation."""
         print("🏭 PRODUCTION ENVIRONMENT SIMULATION")
         print("=" * 60)
@@ -350,7 +350,7 @@ class ProductionEnvironmentSimulator:
             # Always restore environment
             self.restore_environment()
 
-    def generate_production_report(self):
+    def generate_production_report(self) -> None:
         """Generate production readiness report."""
         print("\n" + "=" * 60)
         print("📋 PRODUCTION READINESS REPORT")
@@ -396,7 +396,7 @@ class ProductionEnvironmentSimulator:
         return self.test_results["production_ready"]
 
 
-def main():
+def main() -> None:
     """Main function."""
     simulator = ProductionEnvironmentSimulator()
     success = simulator.run_production_simulation()

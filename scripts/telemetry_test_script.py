@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def test_telemetry():
+def test_telemetry() -> bool:
     """Test the telemetry setup."""
     try:
         # Import our telemetry
@@ -98,7 +98,7 @@ def test_telemetry():
         return False
 
 
-def main():
+def main() -> int:
     """Main test function."""
     logger.info("🚀 Starting OpenTelemetry test...")
 

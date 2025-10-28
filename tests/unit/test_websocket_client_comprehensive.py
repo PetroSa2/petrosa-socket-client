@@ -20,7 +20,7 @@ from socket_client.utils.circuit_breaker import CircuitBreakerOpenError
 class TestBinanceWebSocketClientInitialization:
     """Test cases for WebSocket client initialization."""
 
-    def test_initialization_with_required_parameters(self):
+    def test_initialization_with_required_parameters(self) -> None:
         """Test client initialization with required parameters."""
         client = BinanceWebSocketClient(
             ws_url="wss://stream.binance.com:9443/ws",
@@ -38,7 +38,7 @@ class TestBinanceWebSocketClientInitialization:
         assert client.is_connected is False
         assert client.is_running is False
 
-    def test_initialization_with_optional_parameters(self):
+    def test_initialization_with_optional_parameters(self) -> None:
         """Test client initialization with all parameters."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com/ws",
@@ -53,7 +53,7 @@ class TestBinanceWebSocketClientInitialization:
         assert client.reconnect_delay == 2
         assert len(client.streams) == 2
 
-    def test_initialization_with_empty_streams(self):
+    def test_initialization_with_empty_streams(self) -> None:
         """Test client initialization with empty streams list."""
         client = BinanceWebSocketClient(
             ws_url="wss://stream.binance.com:9443/ws",
@@ -64,7 +64,7 @@ class TestBinanceWebSocketClientInitialization:
 
         assert client.streams == []
 
-    def test_initialization_with_single_stream_string(self):
+    def test_initialization_with_single_stream_string(self) -> None:
         """Test client initialization with single stream as string."""
         client = BinanceWebSocketClient(
             ws_url="wss://stream.binance.com:9443/ws",
@@ -79,7 +79,7 @@ class TestBinanceWebSocketClientInitialization:
     @pytest.mark.parametrize(
         "invalid_url", ["", "not-a-url", "http://invalid-protocol", None]
     )
-    def test_initialization_with_invalid_urls(self, invalid_url):
+    def test_initialization_with_invalid_urls(self, invalid_url) -> None:
         """Test client initialization with invalid URLs.
 
         NOTE: Client currently accepts any URL during initialization.
@@ -103,7 +103,7 @@ class TestWebSocketConnection:
     """Test cases for WebSocket connection management."""
 
     @pytest.mark.asyncio
-    async def test_successful_connection(self):
+    async def test_successful_connection(self) -> None:
         """Test successful WebSocket connection."""
         with patch("websockets.connect") as mock_connect, patch(
             "nats.connect"
@@ -132,7 +132,7 @@ class TestWebSocketConnection:
             mock_nats_connect.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_connection_failure_websocket(self):
+    async def test_connection_failure_websocket(self) -> None:
         """Test WebSocket connection failure."""
         with patch("websockets.connect") as mock_connect:
             mock_connect.side_effect = Exception("WebSocket connection failed")
@@ -150,7 +150,7 @@ class TestWebSocketConnection:
             assert client.is_connected is False
 
     @pytest.mark.asyncio
-    async def test_connection_failure_nats(self):
+    async def test_connection_failure_nats(self) -> None:
         """Test NATS connection failure."""
         with patch("websockets.connect") as mock_ws_connect, patch(
             "nats.connect"
@@ -170,7 +170,7 @@ class TestWebSocketConnection:
                 await client._connect()
 
     @pytest.mark.asyncio
-    async def test_disconnect(self):
+    async def test_disconnect(self) -> None:
         """Test WebSocket disconnection."""
         mock_websocket = AsyncMock()
         mock_nats = AsyncMock()
@@ -195,7 +195,7 @@ class TestWebSocketConnection:
         assert client.nats_client is None
 
     @pytest.mark.asyncio
-    async def test_disconnect_when_not_connected(self):
+    async def test_disconnect_when_not_connected(self) -> None:
         """Test disconnection when not connected."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com/ws",
@@ -209,7 +209,7 @@ class TestWebSocketConnection:
         assert client.is_connected is False
 
     @pytest.mark.asyncio
-    async def test_connection_with_stream_subscription(self):
+    async def test_connection_with_stream_subscription(self) -> None:
         """Test connection with stream subscription."""
         with patch("websockets.connect") as mock_connect, patch(
             "nats.connect"
@@ -247,7 +247,7 @@ class TestMessageHandling:
     """Test cases for WebSocket message handling."""
 
     @pytest.mark.asyncio
-    async def test_handle_trade_message(self):
+    async def test_handle_trade_message(self) -> None:
         """Test handling of trade messages."""
         mock_nats = AsyncMock()
 
@@ -289,7 +289,7 @@ class TestMessageHandling:
         assert published_data["data"]["s"] == "BTCUSDT"
 
     @pytest.mark.asyncio
-    async def test_handle_ticker_message(self):
+    async def test_handle_ticker_message(self) -> None:
         """Test handling of ticker messages."""
         mock_nats = AsyncMock()
 
@@ -321,7 +321,7 @@ class TestMessageHandling:
         assert published_data["stream"] == "btcusdt@ticker"
 
     @pytest.mark.asyncio
-    async def test_handle_invalid_json_message(self):
+    async def test_handle_invalid_json_message(self) -> None:
         """Test handling of invalid JSON messages."""
         mock_nats = AsyncMock()
 
@@ -344,7 +344,7 @@ class TestMessageHandling:
         mock_nats.publish.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_handle_empty_message(self):
+    async def test_handle_empty_message(self) -> None:
         """Test handling of empty messages."""
         mock_nats = AsyncMock()
 
@@ -363,7 +363,7 @@ class TestMessageHandling:
         mock_nats.publish.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_handle_ping_pong_messages(self):
+    async def test_handle_ping_pong_messages(self) -> None:
         """Test handling of ping/pong messages."""
         mock_websocket = AsyncMock()
         mock_nats = AsyncMock()
@@ -386,7 +386,7 @@ class TestMessageHandling:
         mock_websocket.send.assert_called_with(expected_pong)
 
     @pytest.mark.asyncio
-    async def test_message_filtering_by_stream(self):
+    async def test_message_filtering_by_stream(self) -> None:
         """Test message filtering based on subscribed streams."""
         mock_nats = AsyncMock()
 
@@ -422,7 +422,7 @@ class TestReconnectionLogic:
     """Test cases for reconnection logic."""
 
     @pytest.mark.asyncio
-    async def test_reconnection_after_connection_loss(self):
+    async def test_reconnection_after_connection_loss(self) -> None:
         """Test automatic reconnection after connection loss."""
         with patch("websockets.connect") as mock_connect, patch(
             "nats.connect"
@@ -468,7 +468,7 @@ class TestReconnectionLogic:
             assert client.is_connected is True
 
     @pytest.mark.asyncio
-    async def test_reconnection_failure_exhausts_attempts(self):
+    async def test_reconnection_failure_exhausts_attempts(self) -> None:
         """Test reconnection failure after exhausting attempts."""
         with patch("websockets.connect") as mock_connect, patch(
             "asyncio.sleep"
@@ -491,7 +491,7 @@ class TestReconnectionLogic:
             assert mock_connect.call_count == 3
 
     @pytest.mark.asyncio
-    async def test_exponential_backoff_reconnection_delay(self):
+    async def test_exponential_backoff_reconnection_delay(self) -> None:
         """Test exponential backoff for reconnection delays."""
         with patch("websockets.connect") as mock_connect, patch(
             "asyncio.sleep"
@@ -520,7 +520,7 @@ class TestReconnectionLogic:
             assert sleep_calls[1] > sleep_calls[0]  # Exponential backoff
 
     @pytest.mark.asyncio
-    async def test_reconnection_preserves_subscription(self):
+    async def test_reconnection_preserves_subscription(self) -> None:
         """Test that reconnection preserves stream subscriptions."""
         with patch("websockets.connect") as mock_connect, patch(
             "nats.connect"
@@ -556,7 +556,7 @@ class TestClientLifecycle:
     """Test cases for client lifecycle management."""
 
     @pytest.mark.asyncio
-    async def test_start_client(self):
+    async def test_start_client(self) -> None:
         """Test starting the WebSocket client."""
         with patch("websockets.connect") as mock_connect, patch(
             "nats.connect"
@@ -590,7 +590,7 @@ class TestClientLifecycle:
             assert client.is_connected is False
 
     @pytest.mark.asyncio
-    async def test_stop_client_gracefully(self):
+    async def test_stop_client_gracefully(self) -> None:
         """Test graceful client shutdown."""
         mock_websocket = AsyncMock()
         mock_nats = AsyncMock()
@@ -615,7 +615,7 @@ class TestClientLifecycle:
         mock_nats.close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_context_manager_protocol(self):
+    async def test_context_manager_protocol(self) -> None:
         """Test client as async context manager."""
         with patch("websockets.connect") as mock_connect, patch(
             "nats.connect"
@@ -640,7 +640,7 @@ class TestClientLifecycle:
             assert client.is_connected is False
 
     @pytest.mark.asyncio
-    async def test_multiple_start_calls(self):
+    async def test_multiple_start_calls(self) -> None:
         """Test that multiple start calls are handled gracefully."""
         with patch("websockets.connect") as mock_connect, patch(
             "nats.connect"
@@ -680,7 +680,7 @@ class TestErrorHandling:
     """Test cases for error handling."""
 
     @pytest.mark.asyncio
-    async def test_nats_publish_error_handling(self):
+    async def test_nats_publish_error_handling(self) -> None:
         """Test handling of NATS publish errors."""
         mock_nats = AsyncMock()
         mock_nats.publish.side_effect = Exception("NATS publish failed")
@@ -701,7 +701,7 @@ class TestErrorHandling:
             mock_logger.error.assert_called()
 
     @pytest.mark.asyncio
-    async def test_websocket_send_error_handling(self):
+    async def test_websocket_send_error_handling(self) -> None:
         """Test handling of WebSocket send errors."""
         mock_websocket = AsyncMock()
         mock_websocket.send.side_effect = Exception("WebSocket send failed")
@@ -720,7 +720,7 @@ class TestErrorHandling:
             mock_logger.error.assert_called()
 
     @pytest.mark.asyncio
-    async def test_circuit_breaker_integration(self):
+    async def test_circuit_breaker_integration(self) -> None:
         """Test circuit breaker integration with WebSocket operations."""
         with patch(
             "socket_client.utils.circuit_breaker.websocket_circuit_breaker"
@@ -738,7 +738,7 @@ class TestErrorHandling:
                 await client._connect()
 
     @pytest.mark.asyncio
-    async def test_malformed_message_handling(self):
+    async def test_malformed_message_handling(self) -> None:
         """Test handling of malformed messages."""
         mock_nats = AsyncMock()
 
@@ -771,7 +771,7 @@ class TestPerformanceAndScaling:
     """Test cases for performance and scaling."""
 
     @pytest.mark.asyncio
-    async def test_high_message_throughput(self):
+    async def test_high_message_throughput(self) -> None:
         """Test handling of high message throughput."""
         mock_nats = AsyncMock()
 
@@ -810,7 +810,7 @@ class TestPerformanceAndScaling:
         assert mock_nats.publish.call_count == 1000
 
     @pytest.mark.asyncio
-    async def test_memory_usage_stability(self):
+    async def test_memory_usage_stability(self) -> None:
         """Test memory usage remains stable under load."""
         mock_nats = AsyncMock()
 
@@ -832,7 +832,7 @@ class TestPerformanceAndScaling:
         assert mock_nats.publish.call_count == 5000
 
     @pytest.mark.asyncio
-    async def test_concurrent_message_handling(self):
+    async def test_concurrent_message_handling(self) -> None:
         """Test concurrent message handling."""
         mock_nats = AsyncMock()
 
@@ -861,7 +861,7 @@ class TestPerformanceAndScaling:
 class TestHealthAndMonitoring:
     """Test cases for health checks and monitoring."""
 
-    def test_health_status_when_connected(self):
+    def test_health_status_when_connected(self) -> None:
         """Test health status when client is connected."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com/ws",
@@ -881,7 +881,7 @@ class TestHealthAndMonitoring:
         assert "uptime" in health
         assert "streams" in health
 
-    def test_health_status_when_disconnected(self):
+    def test_health_status_when_disconnected(self) -> None:
         """Test health status when client is disconnected."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com/ws",
@@ -896,7 +896,7 @@ class TestHealthAndMonitoring:
         assert health["is_connected"] is False
         assert health["is_running"] is False
 
-    def test_metrics_collection(self):
+    def test_metrics_collection(self) -> None:
         """Test metrics collection."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com/ws",

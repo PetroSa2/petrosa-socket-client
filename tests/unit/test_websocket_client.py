@@ -15,7 +15,7 @@ class TestBinanceWebSocketClient:
     """Test WebSocket client functionality."""
 
     @pytest.mark.asyncio
-    async def test_client_initialization(self):
+    async def test_client_initialization(self) -> None:
         """Test client initialization."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com",
@@ -32,7 +32,7 @@ class TestBinanceWebSocketClient:
         assert not client.is_running
 
     @pytest.mark.asyncio
-    async def test_connect_nats(self, mock_nats_connect):
+    async def test_connect_nats(self, mock_nats_connect) -> None:
         """Test NATS connection."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com",
@@ -51,7 +51,7 @@ class TestBinanceWebSocketClient:
         )
 
     @pytest.mark.asyncio
-    async def test_connect_websocket(self, mock_websockets_connect):
+    async def test_connect_websocket(self, mock_websockets_connect) -> None:
         """Test WebSocket connection."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com",
@@ -81,7 +81,7 @@ class TestBinanceWebSocketClient:
         assert subscription["params"] == ["btcusdt@trade"]
 
     @pytest.mark.asyncio
-    async def test_process_single_message(self, websocket_client, sample_trade_message):
+    async def test_process_single_message(self, websocket_client, sample_trade_message) -> None:
         """Test processing a single message."""
         # Mock NATS publish
         websocket_client.nats_client.publish = AsyncMock()
@@ -93,7 +93,7 @@ class TestBinanceWebSocketClient:
         assert websocket_client.processed_messages == 1
 
     @pytest.mark.asyncio
-    async def test_process_invalid_message(self, websocket_client):
+    async def test_process_invalid_message(self, websocket_client) -> None:
         """Test processing an invalid message."""
         invalid_message = {"invalid": "format"}
 
@@ -105,7 +105,7 @@ class TestBinanceWebSocketClient:
     @pytest.mark.asyncio
     async def test_process_message_nats_disconnected(
         self, websocket_client, sample_trade_message
-    ):
+    ) -> None:
         """Test processing message when NATS is disconnected."""
         websocket_client.nats_client.is_closed = True
 
@@ -115,14 +115,14 @@ class TestBinanceWebSocketClient:
         assert websocket_client.dropped_messages == 1
 
     @pytest.mark.asyncio
-    async def test_websocket_listener(self, websocket_client, sample_trade_message):
+    async def test_websocket_listener(self, websocket_client, sample_trade_message) -> None:
         """Test WebSocket message listener."""
         # This test is simplified to avoid complex async iterator mocking
         # The actual websocket listener functionality is tested in other tests
         assert True  # Placeholder test
 
     @pytest.mark.asyncio
-    async def test_websocket_listener_invalid_json(self, websocket_client):
+    async def test_websocket_listener_invalid_json(self, websocket_client) -> None:
         """Test WebSocket listener with invalid JSON."""
 
         # Mock the websocket to return invalid JSON
@@ -148,7 +148,7 @@ class TestBinanceWebSocketClient:
         websocket_client.nats_client.publish.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_ping_loop(self, websocket_client):
+    async def test_ping_loop(self, websocket_client) -> None:
         """Test ping loop functionality."""
         websocket_client.is_running = True
         websocket_client.is_connected = True
@@ -175,7 +175,7 @@ class TestBinanceWebSocketClient:
     @pytest.mark.asyncio
     async def test_handle_disconnection(
         self, websocket_client, mock_websockets_connect
-    ):
+    ) -> None:
         """Test handling WebSocket disconnection."""
         websocket_client.is_running = True
         websocket_client.max_reconnect_attempts = 2
@@ -204,7 +204,7 @@ class TestBinanceWebSocketClient:
         mock_websockets_connect.assert_called()
 
     @pytest.mark.asyncio
-    async def test_start_and_stop(self, mock_websockets_connect, mock_nats_connect):
+    async def test_start_and_stop(self, mock_websockets_connect, mock_nats_connect) -> None:
         """Test starting and stopping the client."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com",
@@ -241,7 +241,7 @@ class TestBinanceWebSocketClient:
         mock_ws.close.assert_called()
         mock_nats.close.assert_called()
 
-    def test_get_metrics(self, websocket_client):
+    def test_get_metrics(self, websocket_client) -> None:
         """Test getting client metrics."""
         metrics = websocket_client.get_metrics()
 
@@ -260,7 +260,7 @@ class TestBinanceWebSocketClient:
         assert "heartbeat_interval" in metrics
 
     @pytest.mark.asyncio
-    async def test_heartbeat_loop(self, websocket_client):
+    async def test_heartbeat_loop(self, websocket_client) -> None:
         """Test heartbeat loop functionality."""
         # Mock the heartbeat interval to be very short for testing
         import constants
@@ -298,7 +298,7 @@ class TestBinanceWebSocketClient:
             constants.HEARTBEAT_INTERVAL = original_interval
 
     @pytest.mark.asyncio
-    async def test_log_heartbeat_stats(self, websocket_client, caplog):
+    async def test_log_heartbeat_stats(self, websocket_client, caplog) -> None:
         """Test heartbeat statistics logging."""
         import time
 

@@ -24,7 +24,7 @@ class TestMessageThroughputPerformance:
     """Test message processing throughput performance."""
 
     @pytest.mark.asyncio
-    async def test_high_frequency_message_processing(self):
+    async def test_high_frequency_message_processing(self) -> None:
         """Test processing high-frequency message streams."""
         mock_nats = AsyncMock()
 
@@ -70,7 +70,7 @@ class TestMessageThroughputPerformance:
         assert mock_nats.publish.call_count == 10000
 
     @pytest.mark.asyncio
-    async def test_concurrent_message_processing(self):
+    async def test_concurrent_message_processing(self) -> None:
         """Test concurrent message processing performance."""
         mock_nats = AsyncMock()
 
@@ -106,7 +106,7 @@ class TestMessageThroughputPerformance:
         assert throughput >= 2000, f"Concurrent throughput: {throughput:.2f} msg/sec"
 
     @pytest.mark.asyncio
-    async def test_message_processing_latency(self):
+    async def test_message_processing_latency(self) -> None:
         """Test individual message processing latency."""
         mock_nats = AsyncMock()
 
@@ -141,7 +141,7 @@ class TestMessageThroughputPerformance:
         assert p95_latency < 20.0, f"P95 latency: {p95_latency:.2f}ms"
 
     @pytest.mark.asyncio
-    async def test_batch_message_processing(self):
+    async def test_batch_message_processing(self) -> None:
         """Test batch message processing performance."""
         mock_nats = AsyncMock()
 
@@ -183,7 +183,7 @@ class TestMemoryUsagePerformance:
     """Test memory usage and garbage collection performance."""
 
     @pytest.mark.asyncio
-    async def test_memory_usage_under_load(self):
+    async def test_memory_usage_under_load(self) -> None:
         """Test memory usage under sustained message load."""
         import gc
 
@@ -232,7 +232,7 @@ class TestMemoryUsagePerformance:
             ), f"Memory increased by {memory_increase:.2f}MB after batch {batch}"
 
     @pytest.mark.asyncio
-    async def test_message_object_cleanup(self):
+    async def test_message_object_cleanup(self) -> None:
         """Test proper cleanup of message objects."""
         import weakref
 
@@ -274,7 +274,7 @@ class TestMemoryUsagePerformance:
         # Most objects should be cleaned up
         assert cleanup_rate >= 0.9, f"Cleanup rate: {cleanup_rate:.2%}"
 
-    def test_connection_pool_memory_efficiency(self):
+    def test_connection_pool_memory_efficiency(self) -> None:
         """Test memory efficiency of connection pooling."""
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss / 1024 / 1024
@@ -308,7 +308,7 @@ class TestConnectionPerformance:
     """Test WebSocket connection performance."""
 
     @pytest.mark.asyncio
-    async def test_connection_establishment_time(self):
+    async def test_connection_establishment_time(self) -> None:
         """Test WebSocket connection establishment performance."""
         with patch("websockets.connect") as mock_connect, patch(
             "nats.connect"
@@ -338,7 +338,7 @@ class TestConnectionPerformance:
             assert connection_time < 5.0, f"Connection time: {connection_time:.2f}s"
 
     @pytest.mark.asyncio
-    async def test_reconnection_performance(self):
+    async def test_reconnection_performance(self) -> None:
         """Test reconnection performance after failures."""
         connection_times = []
 
@@ -376,7 +376,7 @@ class TestConnectionPerformance:
             ), f"Avg reconnection time: {avg_reconnection_time:.2f}s"
 
     @pytest.mark.asyncio
-    async def test_concurrent_connections(self):
+    async def test_concurrent_connections(self) -> None:
         """Test performance with multiple concurrent connections."""
         with patch("websockets.connect") as mock_connect, patch(
             "nats.connect"
@@ -421,7 +421,7 @@ class TestCircuitBreakerPerformance:
     """Test circuit breaker performance impact."""
 
     @pytest.mark.asyncio
-    async def test_circuit_breaker_overhead(self):
+    async def test_circuit_breaker_overhead(self) -> None:
         """Test performance overhead of circuit breaker."""
         cb = AsyncCircuitBreaker(name="test")
 
@@ -447,7 +447,7 @@ class TestCircuitBreakerPerformance:
         assert overhead_ratio < 2.0, f"Circuit breaker overhead: {overhead_ratio:.2f}x"
 
     @pytest.mark.asyncio
-    async def test_circuit_breaker_under_load(self):
+    async def test_circuit_breaker_under_load(self) -> None:
         """Test circuit breaker performance under high load."""
         cb = AsyncCircuitBreaker(failure_threshold=10, name="test")
 
@@ -484,7 +484,7 @@ class TestScalabilityPerformance:
     """Test scalability under various conditions."""
 
     @pytest.mark.asyncio
-    async def test_stream_scalability(self):
+    async def test_stream_scalability(self) -> None:
         """Test performance with increasing number of streams."""
         mock_nats = AsyncMock()
 
@@ -528,7 +528,7 @@ class TestScalabilityPerformance:
             ), f"Time per stream ({stream_count}): {time_per_stream:.4f}s"
 
     @pytest.mark.asyncio
-    async def test_message_size_scalability(self):
+    async def test_message_size_scalability(self) -> None:
         """Test performance with varying message sizes."""
         mock_nats = AsyncMock()
 
@@ -564,7 +564,7 @@ class TestScalabilityPerformance:
             # Processing time should not increase dramatically with size
             assert avg_time < 0.1, f"Time for {size}B message: {avg_time:.4f}s"
 
-    def test_cpu_usage_efficiency(self):
+    def test_cpu_usage_efficiency(self) -> None:
         """Test CPU usage efficiency under load."""
         import queue
         import threading
@@ -626,7 +626,7 @@ class TestPerformanceRegression:
     """Test for performance regressions."""
 
     @pytest.mark.asyncio
-    async def test_baseline_performance_metrics(self):
+    async def test_baseline_performance_metrics(self) -> None:
         """Establish baseline performance metrics."""
         mock_nats = AsyncMock()
 

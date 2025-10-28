@@ -10,7 +10,7 @@ import asyncio
 import os
 import signal
 import sys
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from dotenv import load_dotenv
@@ -46,7 +46,7 @@ app = typer.Typer(help="Petrosa Socket Client - Binance WebSocket client")
 class SocketClientService:
     """Main service class for the Socket Client."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the service."""
         self.logger = setup_logging(level=constants.LOG_LEVEL)
 
@@ -64,7 +64,7 @@ class SocketClientService:
         self.health_server: Optional[HealthServer] = None
         self.shutdown_event = asyncio.Event()
 
-    async def start(self):
+    async def start(self) -> None:
         """Start the service."""
         self.logger.info("Starting Petrosa Socket Client service")
 
@@ -98,7 +98,7 @@ class SocketClientService:
         finally:
             await self.stop()
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop the service gracefully."""
         self.logger.info("Stopping Petrosa Socket Client service")
 
@@ -115,7 +115,7 @@ class SocketClientService:
         self.logger.info("Service stopped gracefully")
 
 
-def signal_handler(signum, frame):
+def signal_handler(signum: int, frame: Any) -> None:
     """Handle shutdown signals."""
     print(f"\nReceived signal {signum}, shutting down gracefully...")
     if hasattr(signal_handler, "service"):
@@ -137,7 +137,7 @@ def run(
     log_level: str = typer.Option(
         constants.LOG_LEVEL, "--log-level", help="Logging level"
     ),
-):
+) -> None:
     """Run the Socket Client service."""
     # Override constants with command line arguments
     if ws_url:
@@ -169,7 +169,7 @@ def run(
 
 
 @app.command()
-def health():
+def health() -> None:
     """Check service health."""
     import requests
 
@@ -189,7 +189,7 @@ def health():
 
 
 @app.command()
-def version():
+def version() -> None:
     """Show version information."""
     from socket_client import __version__
 

@@ -7,7 +7,7 @@ import os
 import re
 
 
-def fix_mongodb_uri_in_file(file_path):
+def fix_mongodb_uri_in_file(file_path) -> None:
     """Fix MongoDB URI references to use secret instead of configmap."""
 
     with open(file_path) as f:
@@ -32,7 +32,7 @@ def fix_mongodb_uri_in_file(file_path):
     print(f"✅ Updated {file_path}")
 
 
-def main():
+def main() -> None:
     """Main function to update all MongoDB production files."""
 
     # List of files to update

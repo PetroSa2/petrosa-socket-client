@@ -7,7 +7,7 @@ import os
 import re
 
 
-def add_nats_prefixes_to_file(file_path):
+def add_nats_prefixes_to_file(file_path) -> None:
     """Add NATS subject prefix environment variables to a Kubernetes YAML file."""
 
     with open(file_path) as f:
@@ -43,7 +43,7 @@ def add_nats_prefixes_to_file(file_path):
     print(f"✅ Updated {file_path}")
 
 
-def main():
+def main() -> None:
     """Main function to update all cronjob files."""
 
     # List of files to update

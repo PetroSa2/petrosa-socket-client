@@ -34,7 +34,7 @@ import constants  # noqa: E402
 class PipelineRunner:
     """Main pipeline runner class for orchestrating data extraction jobs."""
 
-    def __init__(self, log_level: str = "INFO"):
+    def __init__(self, log_level: str = "INFO") -> None:
         """Initialize the pipeline runner."""
         self.log_level = log_level
         self.logger: Optional[Any] = None
@@ -394,7 +394,7 @@ class PipelineRunner:
                 self.telemetry_manager.shutdown()
 
 
-def parse_arguments():
+def parse_arguments():  # type: ignore[no-untyped-def]
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Petrosa Binance Data Extractor Pipeline Runner",
@@ -458,7 +458,7 @@ Examples:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     args = parse_arguments()
 

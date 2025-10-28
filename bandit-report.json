@@ -1,6 +1,6 @@
 {
   "errors": [],
-  "generated_at": "2025-10-24T13:36:47Z",
+  "generated_at": "2025-10-28T02:57:28Z",
   "metrics": {
     "./constants.py": {
       "CONFIDENCE.HIGH": 0,
@@ -12,19 +12,6 @@
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
       "loc": 86,
-      "nosec": 0,
-      "skipped_tests": 0
-    },
-    "./otel_init.py": {
-      "CONFIDENCE.HIGH": 0,
-      "CONFIDENCE.LOW": 0,
-      "CONFIDENCE.MEDIUM": 0,
-      "CONFIDENCE.UNDEFINED": 0,
-      "SEVERITY.HIGH": 0,
-      "SEVERITY.LOW": 0,
-      "SEVERITY.MEDIUM": 0,
-      "SEVERITY.UNDEFINED": 0,
-      "loc": 200,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -271,7 +258,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 147,
+      "loc": 146,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -297,7 +284,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 169,
+      "loc": 181,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -393,15 +380,15 @@
       "skipped_tests": 0
     },
     "./tests/unit/test_message_models.py": {
-      "CONFIDENCE.HIGH": 32,
+      "CONFIDENCE.HIGH": 61,
       "CONFIDENCE.LOW": 0,
       "CONFIDENCE.MEDIUM": 0,
       "CONFIDENCE.UNDEFINED": 0,
       "SEVERITY.HIGH": 0,
-      "SEVERITY.LOW": 32,
+      "SEVERITY.LOW": 61,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 159,
+      "loc": 319,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -419,28 +406,28 @@
       "skipped_tests": 0
     },
     "./tests/unit/test_websocket_client_comprehensive.py": {
-      "CONFIDENCE.HIGH": 59,
+      "CONFIDENCE.HIGH": 63,
       "CONFIDENCE.LOW": 0,
       "CONFIDENCE.MEDIUM": 0,
       "CONFIDENCE.UNDEFINED": 0,
       "SEVERITY.HIGH": 0,
-      "SEVERITY.LOW": 59,
+      "SEVERITY.LOW": 63,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 700,
+      "loc": 706,
       "nosec": 0,
       "skipped_tests": 0
     },
     "_totals": {
-      "CONFIDENCE.HIGH": 237,
+      "CONFIDENCE.HIGH": 270,
       "CONFIDENCE.LOW": 0,
       "CONFIDENCE.MEDIUM": 1,
       "CONFIDENCE.UNDEFINED": 0,
       "SEVERITY.HIGH": 0,
-      "SEVERITY.LOW": 237,
+      "SEVERITY.LOW": 270,
       "SEVERITY.MEDIUM": 1,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 5361,
+      "loc": 5338,
       "nosec": 0,
       "skipped_tests": 0
     }

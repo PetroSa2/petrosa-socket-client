@@ -42,7 +42,7 @@ CPU_USAGE = Gauge("cpu_usage_percent", "CPU usage percentage")
 class HealthServer:
     """HTTP server for health checks and monitoring."""
 
-    def __init__(self, port: int = 8080, logger=None):
+    def __init__(self, port: int = 8080, logger=None) -> None:
         """
         Initialize the health server.
 
@@ -65,7 +65,7 @@ class HealthServer:
 
         self.logger.info(f"Health server initialized on port {port}")
 
-    async def start(self):
+    async def start(self) -> None:
         """Start the health server."""
         try:
             self.runner = web.AppRunner(self.app)
@@ -80,7 +80,7 @@ class HealthServer:
             self.logger.error(f"Failed to start health server: {e}")
             raise
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop the health server."""
         if self.site:
             await self.site.stop()
@@ -223,13 +223,13 @@ class HealthServer:
         except Exception:
             return 0.0
 
-    def update_websocket_metrics(self, metrics: dict):
+    def update_websocket_metrics(self, metrics: dict) -> None:
         """Update WebSocket metrics (called by main service)."""
         # This method would be called by the main service to update
         # the metrics with real-time data
         pass
 
-    def update_nats_metrics(self, metrics: dict):
+    def update_nats_metrics(self, metrics: dict) -> None:
         """Update NATS metrics (called by main service)."""
         # This method would be called by the main service to update
         # the metrics with real-time data

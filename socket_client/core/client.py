@@ -9,7 +9,7 @@ import asyncio
 import json
 import time
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 import nats
 import websockets
@@ -35,12 +35,12 @@ class BinanceWebSocketClient:
         streams: list[str],
         nats_url: str,
         nats_topic: str,
-        logger=None,
-        max_reconnect_attempts: int = None,
-        reconnect_delay: int = None,
-        ping_interval: int = None,
-        ping_timeout: int = None,
-    ):
+        logger: Optional[Any] = None,
+        max_reconnect_attempts: Optional[int] = None,
+        reconnect_delay: Optional[int] = None,
+        ping_interval: Optional[int] = None,
+        ping_timeout: Optional[int] = None,
+    ) -> None:
         """
         Initialize the WebSocket client.
 
@@ -70,7 +70,7 @@ class BinanceWebSocketClient:
         self.ping_timeout = ping_timeout or constants.WEBSOCKET_PING_TIMEOUT
 
         # Connection state
-        self.websocket: Optional[websockets.WebSocketClientProtocol] = None
+        self.websocket: Optional[Any] = None  # websockets.WebSocketClientProtocol
         self.nats_client: Optional[NATSClient] = None
         self.is_connected = False
         self.is_running = False
@@ -117,7 +117,7 @@ class BinanceWebSocketClient:
             else None,
         )
 
-    async def start(self):
+    async def start(self) -> None:
         """Start the WebSocket client."""
         self.logger.info("Starting WebSocket client")
         self.is_running = True
@@ -153,7 +153,7 @@ class BinanceWebSocketClient:
             await self.stop()
             raise
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop the WebSocket client gracefully."""
         self.logger.info("Stopping WebSocket client")
         self.is_running = False
@@ -187,7 +187,7 @@ class BinanceWebSocketClient:
         self.is_connected = False
         self.logger.info("WebSocket client stopped")
 
-    async def _connect_websocket(self):
+    async def _connect_websocket(self) -> None:
         """Connect to Binance WebSocket."""
         try:
             # Build subscription message
@@ -227,7 +227,7 @@ class BinanceWebSocketClient:
             self.is_connected = False
             raise
 
-    async def _connect_nats(self):
+    async def _connect_nats(self) -> None:
         """Connect to NATS server."""
         try:
             self.nats_client = await nats_circuit_breaker.call(
@@ -240,7 +240,7 @@ class BinanceWebSocketClient:
             self.logger.error(f"Failed to connect to NATS: {e}")
             raise
 
-    async def _websocket_listener(self):
+    async def _websocket_listener(self) -> None:
         """Listen for WebSocket messages."""
         try:
             async for message in self.websocket:
@@ -277,7 +277,7 @@ class BinanceWebSocketClient:
             self.is_connected = False
             await self._handle_disconnection()
 
-    async def _process_messages(self, worker_id: int = 0):
+    async def _process_messages(self, worker_id: int = 0) -> None:
         """
         Process messages from the queue and publish to NATS.
 
@@ -311,7 +311,7 @@ class BinanceWebSocketClient:
 
         self.logger.info(f"Message processor worker {worker_id} stopped")
 
-    async def _process_single_message(self, data: dict):
+    async def _process_single_message(self, data: dict) -> None:
         """Process a single message."""
         try:
             # Validate message format - Binance WebSocket messages come as direct JSON objects
@@ -423,7 +423,7 @@ class BinanceWebSocketClient:
             self.logger.error(f"Error determining stream name: {e}")
             return None
 
-    async def _ping_loop(self):
+    async def _ping_loop(self) -> None:
         """Send periodic pings to keep connection alive."""
         while self.is_running and self.is_connected:
             try:
@@ -437,7 +437,7 @@ class BinanceWebSocketClient:
                 self.logger.error(f"Ping error: {e}")
                 break
 
-    async def _heartbeat_loop(self):
+    async def _heartbeat_loop(self) -> None:
         """Send periodic heartbeat logs with message processing statistics."""
         while self.is_running:
             try:
@@ -452,7 +452,7 @@ class BinanceWebSocketClient:
                 self.logger.error(f"Heartbeat error: {e}")
                 break
 
-    async def _log_heartbeat_stats(self):
+    async def _log_heartbeat_stats(self) -> None:
         """Log heartbeat statistics."""
         current_time = time.time()
         time_since_last_heartbeat = current_time - self.last_heartbeat_time
@@ -527,7 +527,7 @@ class BinanceWebSocketClient:
         self.last_heartbeat_processed = self.processed_messages
         self.last_heartbeat_dropped = self.dropped_messages
 
-    async def _handle_disconnection(self):
+    async def _handle_disconnection(self) -> None:
         """Handle WebSocket disconnection with reconnection logic."""
         if not self.is_running:
             return
