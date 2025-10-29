@@ -9,7 +9,7 @@ import asyncio
 import json
 import time
 import uuid
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import nats
 import websockets
@@ -326,7 +326,7 @@ class BinanceWebSocketClient:
             # Validate message format - Binance WebSocket messages come as direct JSON objects
             # Note: isinstance check is defensive code for runtime safety, though type hints declare dict
             if not isinstance(data, dict):
-                self.logger.warning(
+                self.logger.warning(  # type: ignore[unreachable]
                     "Invalid message format - not a dictionary", data=data
                 )
                 return
