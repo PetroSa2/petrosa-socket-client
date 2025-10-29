@@ -9,7 +9,7 @@ import asyncio
 import json
 import time
 import uuid
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import nats
 import websockets
@@ -75,13 +75,15 @@ class BinanceWebSocketClient:
         self.is_connected = False
         self.is_running = False
         self.reconnect_attempts = 0
-        self.last_ping = 0
+        self.last_ping: float = 0.0
 
         # Message processing
-        self.message_queue = asyncio.Queue(maxsize=constants.MAX_QUEUE_SIZE)
+        self.message_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(
+            maxsize=constants.MAX_QUEUE_SIZE
+        )
         self.processed_messages = 0
         self.dropped_messages = 0
-        self.last_message_time = 0
+        self.last_message_time: float = 0.0
 
         # Heartbeat statistics
         self.start_time = time.time()
@@ -230,8 +232,11 @@ class BinanceWebSocketClient:
     async def _connect_nats(self) -> None:
         """Connect to NATS server."""
         try:
+            # Circuit breaker typing doesn't match nats.connect signature exactly
             self.nats_client = await nats_circuit_breaker.call(
-                nats.connect, self.nats_url, name=constants.NATS_CLIENT_NAME
+                nats.connect,  # type: ignore[arg-type]
+                self.nats_url,
+                name=constants.NATS_CLIENT_NAME,
             )
 
             self.logger.info(f"Connected to NATS server: {self.nats_url}")
@@ -243,6 +248,8 @@ class BinanceWebSocketClient:
     async def _websocket_listener(self) -> None:
         """Listen for WebSocket messages."""
         try:
+            if self.websocket is None:
+                return
             async for message in self.websocket:
                 if not self.is_running:
                     break
@@ -316,7 +323,7 @@ class BinanceWebSocketClient:
         try:
             # Validate message format - Binance WebSocket messages come as direct JSON objects
             if not isinstance(data, dict):
-                self.logger.warning(
+                self.logger.warning(  # type: ignore[unreachable]
                     "Invalid message format - not a dictionary", data=data
                 )
                 return
@@ -443,8 +450,8 @@ class BinanceWebSocketClient:
             try:
                 await asyncio.sleep(constants.HEARTBEAT_INTERVAL)
 
-                if not self.is_running:
-                    break
+                if not self.is_running:  # Defensive check
+                    break  # type: ignore[unreachable]
 
                 await self._log_heartbeat_stats()
 

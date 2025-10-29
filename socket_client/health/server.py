@@ -7,7 +7,7 @@ and service monitoring.
 
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional, cast
 
 from aiohttp import web
 from prometheus_client import Counter, Gauge, generate_latest
@@ -42,7 +42,7 @@ CPU_USAGE = Gauge("cpu_usage_percent", "CPU usage percentage")
 class HealthServer:
     """HTTP server for health checks and monitoring."""
 
-    def __init__(self, port: int = 8080, logger=None) -> None:
+    def __init__(self, port: int = 8080, logger: Any = None) -> None:
         """
         Initialize the health server.
 
@@ -205,7 +205,7 @@ class HealthServer:
 
             process = psutil.Process()
             memory_info = process.memory_info()
-            return memory_info.rss / 1024 / 1024  # Convert to MB
+            return cast(float, memory_info.rss / 1024 / 1024)  # Convert to MB
         except ImportError:
             return 0.0
         except Exception:

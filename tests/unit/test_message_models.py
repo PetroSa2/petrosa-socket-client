@@ -32,7 +32,7 @@ except ImportError:
 
 def assert_missing_field_error(exc_info, field_name: str) -> None:
     """Helper to assert validation error for missing fields.
-    
+
     Args:
         exc_info: Exception info from pytest.raises()
         field_name: Name of the missing field to check for
