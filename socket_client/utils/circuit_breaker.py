@@ -9,7 +9,7 @@ import asyncio
 import time
 from collections.abc import Callable
 from enum import Enum
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 from structlog import get_logger
 
@@ -52,7 +52,7 @@ class AsyncCircuitBreaker:
 
         self.state = CircuitState.CLOSED
         self.failure_count = 0
-        self.last_failure_time = 0
+        self.last_failure_time: float = 0.0
         self._lock = asyncio.Lock()
 
         logger.info(
@@ -62,7 +62,7 @@ class AsyncCircuitBreaker:
             recovery_timeout=recovery_timeout,
         )
 
-    async def call(self, func: Callable[..., T], *args, **kwargs) -> T:
+    async def call(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
         """
         Execute a function with circuit breaker protection.
 
@@ -97,9 +97,9 @@ class AsyncCircuitBreaker:
                 result = func(*args, **kwargs)
 
             await self._on_success()
-            return result
+            return cast(T, result)
 
-        except self.expected_exception:
+        except self.expected_exception:  # type: ignore[misc]
             await self._on_failure()
             raise
 

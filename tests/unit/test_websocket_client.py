@@ -81,7 +81,9 @@ class TestBinanceWebSocketClient:
         assert subscription["params"] == ["btcusdt@trade"]
 
     @pytest.mark.asyncio
-    async def test_process_single_message(self, websocket_client, sample_trade_message) -> None:
+    async def test_process_single_message(
+        self, websocket_client, sample_trade_message
+    ) -> None:
         """Test processing a single message."""
         # Mock NATS publish
         websocket_client.nats_client.publish = AsyncMock()
@@ -115,7 +117,9 @@ class TestBinanceWebSocketClient:
         assert websocket_client.dropped_messages == 1
 
     @pytest.mark.asyncio
-    async def test_websocket_listener(self, websocket_client, sample_trade_message) -> None:
+    async def test_websocket_listener(
+        self, websocket_client, sample_trade_message
+    ) -> None:
         """Test WebSocket message listener."""
         # This test is simplified to avoid complex async iterator mocking
         # The actual websocket listener functionality is tested in other tests
@@ -204,7 +208,9 @@ class TestBinanceWebSocketClient:
         mock_websockets_connect.assert_called()
 
     @pytest.mark.asyncio
-    async def test_start_and_stop(self, mock_websockets_connect, mock_nats_connect) -> None:
+    async def test_start_and_stop(
+        self, mock_websockets_connect, mock_nats_connect
+    ) -> None:
         """Test starting and stopping the client."""
         client = BinanceWebSocketClient(
             ws_url="wss://test.binance.com",

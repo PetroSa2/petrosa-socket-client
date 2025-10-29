@@ -157,7 +157,7 @@ def run(
 
     # Create and run service
     service = SocketClientService()
-    signal_handler.service = service
+    signal_handler.service = service  # type: ignore[attr-defined]
 
     try:
         asyncio.run(service.start())

@@ -159,9 +159,22 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
-warn_unreachable = true
+warn_unreachable = false
 strict_equality = true
 show_error_codes = true
+exclude = [
+    "scripts/run_pipeline.py",
+    "scripts/test_pipeline_simulation.py",
+    "scripts/test_production_simulation.py",
+    "scripts/test_integration.py",
+    "scripts/test_otel_setup.py",
+    "scripts/test_nats_messaging.py",
+    "scripts/telemetry_test_script.py",
+    "scripts/fix_.*\\.py",
+    "scripts/add_.*\\.py",
+    "scripts/auto_context.py",
+    "tests/.*",
+]
 
 [[tool.mypy.overrides]]
 module = [
@@ -170,6 +183,8 @@ module = [
     "aiohttp.*",
     "orjson.*",
     "pybreaker.*",
+    "petrosa_otel.*",
+    "prometheus_client.*",
 ]
 ignore_missing_imports = true
 

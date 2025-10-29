@@ -66,8 +66,8 @@ lint: ## Run linting checks with ruff (replaces flake8)
 
 type-check: ## Run type checking with mypy
 	@echo "🔍 Running type checking with mypy..."
-	mypy . --ignore-missing-imports || echo "⚠️  Type checking found issues (non-blocking)"
-	@echo "✅ Type checking completed!"
+	mypy .
+	@echo "✅ Type checking passed with zero errors!"
 
 pre-commit: ## Run pre-commit hooks on all files
 	@echo "🔍 Running pre-commit hooks on all files..."
