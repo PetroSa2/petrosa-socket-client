@@ -9,7 +9,7 @@ import asyncio
 import json
 import time
 import uuid
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 import nats
 import websockets
@@ -232,7 +232,9 @@ class BinanceWebSocketClient:
     async def _connect_nats(self) -> None:
         """Connect to NATS server."""
         try:
-            # Circuit breaker typing doesn't match nats.connect signature exactly
+            # Circuit breaker expects a callable returning T directly, but nats.connect
+            # returns an async context manager (to be used with 'async with'), hence the type
+            # mismatch and the need for type: ignore[arg-type]
             self.nats_client = await nats_circuit_breaker.call(
                 nats.connect,  # type: ignore[arg-type]
                 self.nats_url,
@@ -322,8 +324,9 @@ class BinanceWebSocketClient:
         """Process a single message."""
         try:
             # Validate message format - Binance WebSocket messages come as direct JSON objects
+            # Note: isinstance check is defensive code for runtime safety, though type hints declare dict
             if not isinstance(data, dict):
-                self.logger.warning(  # type: ignore[unreachable]
+                self.logger.warning(
                     "Invalid message format - not a dictionary", data=data
                 )
                 return
@@ -450,8 +453,9 @@ class BinanceWebSocketClient:
             try:
                 await asyncio.sleep(constants.HEARTBEAT_INTERVAL)
 
-                if not self.is_running:  # Defensive check
-                    break  # type: ignore[unreachable]
+                # Defensive check for race conditions where is_running could change between iterations
+                if not self.is_running:
+                    break
 
                 await self._log_heartbeat_stats()
 
