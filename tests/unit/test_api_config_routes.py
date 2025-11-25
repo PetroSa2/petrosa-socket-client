@@ -37,7 +37,11 @@ def client(mock_config_manager):
     set_config_manager(mock_config_manager)
     
     app = create_app()
-    return TestClient(app)
+    client_instance = TestClient(app)
+    yield client_instance
+    
+    # Cleanup: reset config manager
+    set_config_manager(None)
 
 
 class TestStreamsEndpoints:
