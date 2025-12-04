@@ -33,10 +33,10 @@ class TestClientStartMethodPaths:
             # Start in background
             start_task = asyncio.create_task(client.start())
             await asyncio.sleep(0.05)
-            
+
             # Should be running
             assert client.is_running is True
-            
+
             # Stop it
             client.is_running = False
             await asyncio.sleep(0.05)
@@ -61,7 +61,9 @@ class TestClientStartMethodPaths:
         with (
             patch.object(client, "_connect_nats", new_callable=AsyncMock),
             patch.object(client, "_connect_websocket", new_callable=AsyncMock),
-            patch("asyncio.create_task", side_effect=lambda coro: AsyncMock()) as mock_create,
+            patch(
+                "asyncio.create_task", side_effect=lambda coro: AsyncMock()
+            ) as mock_create,
         ):
             start_task = asyncio.create_task(client.start())
             await asyncio.sleep(0.05)
@@ -127,32 +129,32 @@ class TestHealthServerProperties:
     def test_server_port_accessible(self):
         """Test server port is accessible."""
         server = HealthServer(port=9400)
-        
+
         assert server.port == 9400
 
     def test_server_logger_accessible(self):
         """Test server logger is accessible."""
         logger = MagicMock()
         server = HealthServer(port=9401, logger=logger)
-        
+
         assert server.logger is logger
 
     def test_server_app_accessible(self):
         """Test server app is accessible."""
         server = HealthServer(port=9402)
-        
+
         assert server.app is not None
 
     def test_server_runner_initially_none(self):
         """Test server runner is None initially."""
         server = HealthServer(port=9403)
-        
+
         assert server.runner is None
 
     def test_server_site_initially_none(self):
         """Test server site is None initially."""
         server = HealthServer(port=9404)
-        
+
         assert server.site is None
 
 
@@ -283,4 +285,3 @@ class TestClientTaskAttributes:
         client.processor_tasks = mock_tasks
 
         assert len(client.processor_tasks) == 2
-

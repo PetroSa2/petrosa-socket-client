@@ -18,7 +18,6 @@ from socket_client.health.server import HealthServer
 from socket_client.models.message import WebSocketMessage
 from socket_client.services.config_manager import get_config_manager, set_config_manager
 
-
 # ============================================================================
 # BATCH 1: Health Server Tests
 # ============================================================================
@@ -32,7 +31,7 @@ class TestHealthServerMethods:
         """Test _get_memory_usage returns float."""
         server = HealthServer(port=8900)
         result = server._get_memory_usage()
-        
+
         assert isinstance(result, float)
         assert result >= 0.0
 
@@ -40,7 +39,7 @@ class TestHealthServerMethods:
         """Test _get_cpu_usage returns float."""
         server = HealthServer(port=8901)
         result = server._get_cpu_usage()
-        
+
         assert isinstance(result, float)
         assert result >= 0.0
 
@@ -49,7 +48,7 @@ class TestHealthServerMethods:
         before = time.time()
         server = HealthServer(port=8902)
         after = time.time()
-        
+
         assert hasattr(server, "start_time")
         assert before <= server.start_time <= after
 
@@ -57,7 +56,7 @@ class TestHealthServerMethods:
     async def test_health_check_method_exists(self):
         """Test health_check method exists."""
         server = HealthServer(port=8903)
-        
+
         assert hasattr(server, "health_check")
         assert callable(server.health_check)
 
@@ -65,7 +64,7 @@ class TestHealthServerMethods:
     async def test_ready_check_method_exists(self):
         """Test ready_check method exists."""
         server = HealthServer(port=8904)
-        
+
         assert hasattr(server, "ready_check")
         assert callable(server.ready_check)
 
@@ -73,7 +72,7 @@ class TestHealthServerMethods:
     async def test_metrics_method_exists(self):
         """Test metrics method exists."""
         server = HealthServer(port=8905)
-        
+
         assert hasattr(server, "metrics")
         assert callable(server.metrics)
 
@@ -166,15 +165,7 @@ class TestMessageModelEdgeCases:
         """Test message with deeply nested data."""
         msg = WebSocketMessage(
             stream="test@stream",
-            data={
-                "level1": {
-                    "level2": {
-                        "level3": {
-                            "value": "deep"
-                        }
-                    }
-                }
-            },
+            data={"level1": {"level2": {"level3": {"value": "deep"}}}},
         )
 
         assert msg.data["level1"]["level2"]["level3"]["value"] == "deep"
@@ -219,20 +210,20 @@ class TestConfigManagerGlobal:
     def test_get_set_config_manager_cycle(self):
         """Test setting and getting config manager."""
         original = get_config_manager()
-        
+
         mock_manager = MagicMock()
         set_config_manager(mock_manager)
-        
+
         retrieved = get_config_manager()
         assert retrieved is mock_manager
-        
+
         # Restore
         set_config_manager(original)
 
     def test_set_config_manager_none(self):
         """Test setting config manager to None."""
         set_config_manager(None)
-        
+
         # Should not crash
         result = get_config_manager()
         # May return None or create default
@@ -297,7 +288,6 @@ class TestSimplePassingTests:
         # Test conversions
         nats_msg = msg.to_nats_message()
         assert isinstance(nats_msg, dict)
-        
+
         json_str = msg.to_json()
         assert isinstance(json_str, str)
-

@@ -10,10 +10,10 @@ from unittest.mock import patch
 import pytest
 
 from socket_client.models.message import (
-    WebSocketMessage,
-    TradeMessage,
-    TickerMessage,
     DepthMessage,
+    TickerMessage,
+    TradeMessage,
+    WebSocketMessage,
     create_message,
     validate_message,
 )
@@ -265,4 +265,3 @@ class TestMessageJSONSerialization:
         parsed = json.loads(json_str)
 
         assert parsed["data"]["level1"]["level2"]["level3"] == "value"
-

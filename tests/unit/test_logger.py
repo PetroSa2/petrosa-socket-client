@@ -1,7 +1,8 @@
 """Tests for the logger utilities module."""
 
 import pytest
-from socket_client.utils.logger import get_logger, setup_logging, LoggerMixin
+
+from socket_client.utils.logger import LoggerMixin, get_logger, setup_logging
 
 
 def test_setup_logging_json_format() -> None:
@@ -81,5 +82,3 @@ def test_logger_mixin_with_kwargs() -> None:
     assert obj.custom_arg == "custom"
     assert obj.logger is not None
     obj.log_info("test")
-
-

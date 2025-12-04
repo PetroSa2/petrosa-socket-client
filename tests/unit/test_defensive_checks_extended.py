@@ -78,10 +78,10 @@ class TestClientCounterOperations:
         )
 
         assert client.processed_messages == 0
-        
+
         client.processed_messages += 1
         assert client.processed_messages == 1
-        
+
         client.processed_messages += 99
         assert client.processed_messages == 100
 
@@ -95,7 +95,7 @@ class TestClientCounterOperations:
         )
 
         assert client.dropped_messages == 0
-        
+
         client.dropped_messages += 5
         assert client.dropped_messages == 5
 
@@ -109,10 +109,10 @@ class TestClientCounterOperations:
         )
 
         assert client.reconnect_attempts == 0
-        
+
         client.reconnect_attempts += 1
         assert client.reconnect_attempts == 1
-        
+
         client.reconnect_attempts += 2
         assert client.reconnect_attempts == 3
 
@@ -131,10 +131,10 @@ class TestClientFlagOperations:
         )
 
         assert client.is_connected is False
-        
+
         client.is_connected = True
         assert client.is_connected is True
-        
+
         client.is_connected = False
         assert client.is_connected is False
 
@@ -148,10 +148,10 @@ class TestClientFlagOperations:
         )
 
         assert client.is_running is False
-        
+
         client.is_running = True
         assert client.is_running is True
-        
+
         client.is_running = False
         assert client.is_running is False
 
@@ -163,7 +163,7 @@ class TestClientTimestampOperations:
     def test_last_ping_can_be_updated(self):
         """Test last_ping timestamp can be updated."""
         import time
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -172,17 +172,17 @@ class TestClientTimestampOperations:
         )
 
         assert client.last_ping == 0.0
-        
+
         now = time.time()
         client.last_ping = now
-        
+
         assert client.last_ping == now
         assert client.last_ping > 0
 
     def test_last_message_time_can_be_updated(self):
         """Test last_message_time can be updated."""
         import time
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -191,18 +191,18 @@ class TestClientTimestampOperations:
         )
 
         assert client.last_message_time == 0.0
-        
+
         now = time.time()
         client.last_message_time = now
-        
+
         assert client.last_message_time == now
 
     def test_start_time_is_current_time(self):
         """Test start_time is set to current time."""
         import time
-        
+
         before = time.time()
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -280,4 +280,3 @@ class TestClientNoneChecks:
         )
 
         assert client.ping_timeout > 0
-

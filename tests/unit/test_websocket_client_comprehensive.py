@@ -928,7 +928,7 @@ class TestClientStartStopScenarios:
                 nats_url="nats://localhost:4222",
                 nats_topic="test.topic",
             )
-            
+
             with (
                 patch.object(client, "_connect_nats", new_callable=AsyncMock),
                 patch.object(client, "_connect_websocket", new_callable=AsyncMock),
@@ -939,9 +939,11 @@ class TestClientStartStopScenarios:
                 await asyncio.sleep(0.1)
                 client.is_running = False
                 await start_task
-                
+
                 # Verify heartbeat task was created
-                assert mock_create_task.call_count >= 2  # processors + ping + maybe heartbeat
+                assert (
+                    mock_create_task.call_count >= 2
+                )  # processors + ping + maybe heartbeat
 
     @pytest.mark.asyncio
     async def test_start_failure_calls_stop(self):
@@ -952,14 +954,14 @@ class TestClientStartStopScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         with (
             patch.object(client, "_connect_nats", side_effect=Exception("NATS failed")),
             patch.object(client, "stop", new_callable=AsyncMock) as mock_stop,
         ):
             with pytest.raises(Exception, match="NATS failed"):
                 await client.start()
-            
+
             # Verify stop was called in exception handler
             mock_stop.assert_called_once()
 
@@ -972,13 +974,13 @@ class TestClientStartStopScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Create mock ping task
         mock_ping_task = AsyncMock()
         client.ping_task = mock_ping_task
-        
+
         await client.stop()
-        
+
         mock_ping_task.cancel.assert_called_once()
 
     @pytest.mark.asyncio
@@ -990,13 +992,13 @@ class TestClientStartStopScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Create mock heartbeat task
         mock_heartbeat_task = AsyncMock()
         client.heartbeat_task = mock_heartbeat_task
-        
+
         await client.stop()
-        
+
         mock_heartbeat_task.cancel.assert_called_once()
 
     @pytest.mark.asyncio
@@ -1008,13 +1010,13 @@ class TestClientStartStopScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Create mock processor tasks
         mock_tasks = [AsyncMock() for _ in range(3)]
         client.processor_tasks = mock_tasks
-        
+
         await client.stop()
-        
+
         # Verify all tasks were cancelled
         for task in mock_tasks:
             task.cancel.assert_called_once()
@@ -1028,13 +1030,13 @@ class TestClientStartStopScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Create mock websocket
         mock_ws = AsyncMock()
         client.websocket = mock_ws
-        
+
         await client.stop()
-        
+
         mock_ws.close.assert_called_once()
 
     @pytest.mark.asyncio
@@ -1046,13 +1048,13 @@ class TestClientStartStopScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Create mock NATS client
         mock_nats = AsyncMock()
         client.nats_client = mock_nats
-        
+
         await client.stop()
-        
+
         mock_nats.close.assert_called_once()
 
     @pytest.mark.asyncio
@@ -1064,11 +1066,11 @@ class TestClientStartStopScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # First stop
         await client.stop()
         assert client.is_running is False
-        
+
         # Second stop should not raise error
         await client.stop()
         assert client.is_running is False

@@ -38,7 +38,7 @@ class TestCreateApp:
         app = create_app()
 
         routes = [route.path for route in app.routes]
-        
+
         assert len(routes) > 0
         assert "/" in routes or any("/" in r for r in routes)
 
@@ -100,4 +100,3 @@ class TestAppMetadata:
 
         # Debug mode should be configurable
         assert hasattr(app, "debug")
-

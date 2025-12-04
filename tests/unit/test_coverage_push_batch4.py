@@ -4,6 +4,7 @@ Batch 4: Comprehensive test additions targeting remaining gaps.
 
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from socket_client.core.client import BinanceWebSocketClient
@@ -197,8 +198,9 @@ class TestClientMessageStats:
     def test_last_stats_log_time_initialized(self):
         """Test last_stats_log_time is initialized."""
         import time
+
         before = time.time()
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -221,4 +223,3 @@ class TestClientMessageStats:
 
         assert isinstance(client.num_processors, int)
         assert client.num_processors > 0
-

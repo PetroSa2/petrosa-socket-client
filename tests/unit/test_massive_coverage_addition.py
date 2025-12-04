@@ -17,15 +17,18 @@ from socket_client.api.main import create_app
 from socket_client.core.client import BinanceWebSocketClient
 from socket_client.health.server import HealthServer
 from socket_client.models.message import (
-    WebSocketMessage,
-    TradeMessage,
-    TickerMessage,
     DepthMessage,
+    TickerMessage,
+    TradeMessage,
+    WebSocketMessage,
     create_message,
     validate_message,
 )
-from socket_client.services.config_manager import ConfigManager, get_config_manager, set_config_manager
-
+from socket_client.services.config_manager import (
+    ConfigManager,
+    get_config_manager,
+    set_config_manager,
+)
 
 # =============================================================================
 # SECTION 1: CLIENT COMPREHENSIVE ATTRIBUTE AND METHOD COVERAGE (50+ tests)
@@ -54,7 +57,7 @@ class TestClientInitializationComprehensive:
     def test_init_all_optional_params(self):
         """Test initialization with all optional parameters."""
         logger = MagicMock()
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -102,7 +105,7 @@ class TestClientInitializationComprehensive:
     def test_init_sets_all_timestamps(self):
         """Test initialization sets all timestamps."""
         before = time.time()
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -656,7 +659,9 @@ class TestWebSocketMessageComprehensive:
     def test_message_timestamp_parsing(self):
         """Test timestamp parsing variations."""
         # String with Z
-        msg1 = WebSocketMessage(stream="test", data={}, timestamp="2025-06-15T10:30:00Z")
+        msg1 = WebSocketMessage(
+            stream="test", data={}, timestamp="2025-06-15T10:30:00Z"
+        )
         assert msg1.timestamp.year == 2025
 
         # String without Z
@@ -838,7 +843,7 @@ class TestConfigManagerGlobalFunctions:
         set_config_manager(mock)
         result = get_config_manager()
         assert result is mock or result is not None
-        
+
         # Cleanup
         set_config_manager(None)
 
@@ -856,7 +861,7 @@ class TestConfigManagerClass:
     def test_config_manager_can_be_instantiated(self, mock_mongo):
         """Test ConfigManager can be instantiated."""
         mock_mongo.return_value = MagicMock()
-        
+
         manager = ConfigManager()
         assert manager is not None
 
@@ -864,11 +869,10 @@ class TestConfigManagerClass:
     def test_config_manager_has_methods(self, mock_mongo):
         """Test ConfigManager has expected methods."""
         mock_mongo.return_value = MagicMock()
-        
+
         manager = ConfigManager()
 
         assert hasattr(manager, "get_streams")
         assert hasattr(manager, "add_stream")
         assert hasattr(manager, "remove_stream")
         assert hasattr(manager, "update_streams")
-

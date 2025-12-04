@@ -67,4 +67,3 @@ class ConfigValidationRequest(BaseModel):
     parameters: dict[str, Any] = Field(
         ..., description="Configuration parameters to validate"
     )
-

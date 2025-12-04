@@ -8,6 +8,7 @@ import time
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from aiohttp import web
 
 from socket_client.core.client import BinanceWebSocketClient
 from socket_client.health.server import HealthServer
@@ -29,7 +30,7 @@ class TestClientStopScenarios:
 
         # Nothing started, should handle gracefully
         await client.stop()
-        
+
         assert client.is_running is False
 
     @pytest.mark.asyncio
@@ -43,9 +44,9 @@ class TestClientStopScenarios:
         )
 
         client.websocket = AsyncMock()
-        
+
         await client.stop()
-        
+
         client.websocket.close.assert_called_once()
 
     @pytest.mark.asyncio
@@ -59,9 +60,9 @@ class TestClientStopScenarios:
         )
 
         client.nats_client = AsyncMock()
-        
+
         await client.stop()
-        
+
         client.nats_client.close.assert_called_once()
 
     @pytest.mark.asyncio
@@ -165,34 +166,34 @@ class TestHealthServerResponseStructures:
     async def test_health_check_response_structure(self):
         """Test health check returns proper structure."""
         server = HealthServer(port=9100)
-        
+
         # Create mock request
         mock_request = Mock(spec=web.Request)
-        
+
         response = await server.health_check(mock_request)
-        
+
         assert isinstance(response, web.Response)
 
     @pytest.mark.asyncio
     async def test_ready_check_response_structure(self):
         """Test ready check returns proper structure."""
         server = HealthServer(port=9101)
-        
+
         mock_request = Mock(spec=web.Request)
-        
+
         response = await server.ready_check(mock_request)
-        
+
         assert isinstance(response, web.Response)
 
     @pytest.mark.asyncio
     async def test_metrics_response_structure(self):
         """Test metrics returns proper structure."""
         server = HealthServer(port=9102)
-        
+
         mock_request = Mock(spec=web.Request)
-        
+
         response = await server.metrics(mock_request)
-        
+
         assert isinstance(response, web.Response)
 
 
@@ -211,7 +212,7 @@ class TestClientQueueOperations:
         )
 
         messages = [{"msg": i} for i in range(10)]
-        
+
         for msg in messages:
             await client.message_queue.put(msg)
 
@@ -258,7 +259,7 @@ class TestClientConfigurationVariations:
     def test_maximal_config(self):
         """Test client with all optional parameters."""
         logger = MagicMock()
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://maximal.test.com:9443/stream?params=1",
             streams=["a@trade", "b@ticker", "c@depth", "d@kline"],
@@ -329,4 +330,3 @@ class TestHealthServerMultipleInstances:
         assert server1.logger is logger1
         assert server2.logger is logger2
         assert server1.logger is not server2.logger
-

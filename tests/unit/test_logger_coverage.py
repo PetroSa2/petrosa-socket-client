@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from socket_client.utils.logger import setup_logging, get_logger
+from socket_client.utils.logger import get_logger, setup_logging
 
 
 @pytest.mark.unit
@@ -120,4 +120,3 @@ class TestLoggingConfiguration:
 
         # Should work
         logger.info("Test")
-

@@ -13,8 +13,12 @@ from aiohttp import web
 
 from socket_client.core.client import BinanceWebSocketClient
 from socket_client.health.server import HealthServer
-from socket_client.models.message import WebSocketMessage, TradeMessage, TickerMessage, DepthMessage
-
+from socket_client.models.message import (
+    DepthMessage,
+    TickerMessage,
+    TradeMessage,
+    WebSocketMessage,
+)
 
 # =============================================================================
 # ULTRA CLIENT TESTS (100+ tests targeting all uncovered lines)
@@ -57,22 +61,30 @@ class TestClientEveryAttribute:
 
     def test_max_reconnect_attempts_attr(self):
         """Test max_reconnect_attempts attribute."""
-        client = BinanceWebSocketClient("wss://a", ["s"], "nats://n", "t", max_reconnect_attempts=99)
+        client = BinanceWebSocketClient(
+            "wss://a", ["s"], "nats://n", "t", max_reconnect_attempts=99
+        )
         assert client.max_reconnect_attempts == 99
 
     def test_reconnect_delay_attr(self):
         """Test reconnect_delay attribute."""
-        client = BinanceWebSocketClient("wss://a", ["s"], "nats://n", "t", reconnect_delay=77)
+        client = BinanceWebSocketClient(
+            "wss://a", ["s"], "nats://n", "t", reconnect_delay=77
+        )
         assert client.reconnect_delay == 77
 
     def test_ping_interval_attr(self):
         """Test ping_interval attribute."""
-        client = BinanceWebSocketClient("wss://a", ["s"], "nats://n", "t", ping_interval=88)
+        client = BinanceWebSocketClient(
+            "wss://a", ["s"], "nats://n", "t", ping_interval=88
+        )
         assert client.ping_interval == 88
 
     def test_ping_timeout_attr(self):
         """Test ping_timeout attribute."""
-        client = BinanceWebSocketClient("wss://a", ["s"], "nats://n", "t", ping_timeout=66)
+        client = BinanceWebSocketClient(
+            "wss://a", ["s"], "nats://n", "t", ping_timeout=66
+        )
         assert client.ping_timeout == 66
 
     def test_websocket_attr(self):
@@ -412,6 +424,7 @@ class TestMessageEveryConversion:
 
         assert isinstance(result, str)
         import json
+
         parsed = json.loads(result)
         assert "stream" in parsed
 
@@ -436,7 +449,7 @@ class TestClientScenarios:
     async def test_client_stop_idempotent(self):
         """Test stop is idempotent."""
         client = BinanceWebSocketClient("wss://a", ["s"], "nats://n", "t")
-        
+
         await client.stop()
         await client.stop()
         await client.stop()
@@ -472,7 +485,7 @@ class TestHealthServerScenarios:
     async def test_server_stop_idempotent(self):
         """Test stop is idempotent."""
         server = HealthServer(port=8801)
-        
+
         await server.stop()
         await server.stop()
         await server.stop()
@@ -513,7 +526,7 @@ class TestEdgeCases:
         long_topic = "topic." + "t" * 1000
 
         client = BinanceWebSocketClient(long_url, [long_stream], long_nats, long_topic)
-        
+
         assert len(client.ws_url) > 1000
         assert len(client.streams[0]) > 1000
         assert len(client.nats_url) > 1000
@@ -523,7 +536,7 @@ class TestEdgeCases:
         """Test client with many streams."""
         many_streams = [f"stream{i}@trade" for i in range(100)]
         client = BinanceWebSocketClient("wss://a", many_streams, "nats://n", "t")
-        
+
         assert len(client.streams) == 100
 
     def test_health_server_with_high_port(self):
@@ -540,7 +553,7 @@ class TestEdgeCases:
         """Test message with large data payload."""
         large_data = {f"key{i}": f"value{i}" for i in range(1000)}
         msg = WebSocketMessage(stream="test", data=large_data)
-        
+
         assert len(msg.data) == 1000
 
     def test_message_with_unicode_data(self):
@@ -552,7 +565,7 @@ class TestEdgeCases:
             "emoji": "🚀💰📈",
         }
         msg = WebSocketMessage(stream="test", data=unicode_data)
-        
+
         assert msg.data["chinese"] == "比特币"
         assert "🚀" in msg.data["emoji"]
 
@@ -635,11 +648,9 @@ class TestMultipleInstances:
     def test_multiple_messages(self):
         """Test multiple message instances."""
         messages = [
-            WebSocketMessage(stream=f"stream{i}", data={"id": i})
-            for i in range(10)
+            WebSocketMessage(stream=f"stream{i}", data={"id": i}) for i in range(10)
         ]
 
         for i, msg in enumerate(messages):
             assert msg.stream == f"stream{i}"
             assert msg.data["id"] == i
-

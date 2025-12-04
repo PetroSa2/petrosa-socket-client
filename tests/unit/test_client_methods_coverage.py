@@ -471,7 +471,7 @@ class TestClientTimestamps:
     def test_start_time_set_on_init(self):
         """Test start_time is set on initialization."""
         before = time.time()
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -486,7 +486,7 @@ class TestClientTimestamps:
     def test_last_heartbeat_time_set_on_init(self):
         """Test last_heartbeat_time is set on initialization."""
         before = time.time()
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -501,7 +501,7 @@ class TestClientTimestamps:
     def test_last_stats_log_time_set_on_init(self):
         """Test last_stats_log_time is set on initialization."""
         before = time.time()
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -664,4 +664,3 @@ class TestClientStopMethod:
         mock_ping.cancel.assert_called_once()
         mock_heartbeat.cancel.assert_called_once()
         mock_processor.cancel.assert_called_once()
-

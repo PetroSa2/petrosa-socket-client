@@ -3,14 +3,15 @@ Tests to boost models/message.py from 90.62% to 100%.
 Target the 6 remaining uncovered lines.
 """
 
-import pytest
 from datetime import datetime
 
+import pytest
+
 from socket_client.models.message import (
-    WebSocketMessage,
-    TradeMessage,
-    TickerMessage,
     DepthMessage,
+    TickerMessage,
+    TradeMessage,
+    WebSocketMessage,
     create_message,
     validate_message,
 )
@@ -23,7 +24,7 @@ class TestMessageTimestampEdgeCases:
     def test_timestamp_as_datetime_object(self):
         """Test timestamp passed as datetime object."""
         dt = datetime(2025, 1, 1, 12, 0, 0)
-        
+
         msg = WebSocketMessage(
             stream="test@stream",
             data={"test": "data"},
@@ -35,7 +36,7 @@ class TestMessageTimestampEdgeCases:
     def test_timestamp_default_factory(self):
         """Test timestamp uses default factory when not provided."""
         before = datetime.utcnow()
-        
+
         msg = WebSocketMessage(
             stream="test@stream",
             data={"test": "data"},
@@ -232,4 +233,3 @@ class TestValidateMessageFunction:
         result = validate_message({})
 
         assert result is False
-

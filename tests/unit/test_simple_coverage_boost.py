@@ -23,7 +23,7 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Just accessing attributes increases coverage
         assert client.ws_url == "wss://test.com"
         assert len(client.streams) == 1
@@ -41,16 +41,16 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Test queue is created
         assert client.message_queue.empty()
-        
+
         # Test putting message
         test_msg = {"test": "data"}
         await client.message_queue.put(test_msg)
-        
+
         assert not client.message_queue.empty()
-        
+
         # Test getting message
         msg = await client.message_queue.get()
         assert msg == test_msg
@@ -63,7 +63,7 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Access statistics attributes
         assert isinstance(client.processed_messages, int)
         assert isinstance(client.dropped_messages, int)
@@ -84,7 +84,7 @@ class TestClientBasicMethods:
             ping_interval=25,
             ping_timeout=15,
         )
-        
+
         assert client.max_reconnect_attempts == 15
         assert client.reconnect_delay == 10
         assert client.ping_interval == 25
@@ -99,7 +99,7 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         assert client.websocket is None
         assert client.nats_client is None
 
@@ -111,7 +111,7 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         assert client.is_connected is False
         assert client.is_running is False
 
@@ -124,15 +124,15 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         client.is_running = True
-        
+
         # Mock close methods
         client.websocket = AsyncMock()
         client.nats_client = AsyncMock()
-        
+
         await client.stop()
-        
+
         assert client.is_running is False
 
     def test_heartbeat_stats(self):
@@ -143,7 +143,7 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         assert client.last_heartbeat_processed == 0
         assert client.last_heartbeat_dropped == 0
         assert client.stats_log_interval == 60
@@ -157,7 +157,7 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         assert len(client.streams) == 3
         assert client.streams == streams
 
@@ -170,14 +170,15 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Initial value
         assert client.last_message_time == 0.0
-        
+
         # Update it
         import time
+
         client.last_message_time = time.time()
-        
+
         assert client.last_message_time > 0
 
     def test_last_ping_tracking(self):
@@ -188,7 +189,7 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         assert client.last_ping == 0.0
 
     @pytest.mark.asyncio
@@ -200,7 +201,7 @@ class TestClientBasicMethods:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         # Queue should have a maxsize from constants
         assert client.message_queue.maxsize > 0
         assert isinstance(client.message_queue, asyncio.Queue)
@@ -219,13 +220,13 @@ class TestClientSimpleScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         initial = client.reconnect_attempts
         client.reconnect_attempts += 1
-        
+
         assert client.reconnect_attempts == initial + 1
 
-    @pytest.mark.asyncio  
+    @pytest.mark.asyncio
     async def test_processed_messages_counter(self):
         """Test processed messages counter."""
         client = BinanceWebSocketClient(
@@ -234,12 +235,12 @@ class TestClientSimpleScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         assert client.processed_messages == 0
-        
+
         client.processed_messages += 1
         assert client.processed_messages == 1
-        
+
         client.processed_messages += 10
         assert client.processed_messages == 11
 
@@ -252,9 +253,8 @@ class TestClientSimpleScenarios:
             nats_url="nats://localhost:4222",
             nats_topic="test.topic",
         )
-        
+
         assert client.dropped_messages == 0
-        
+
         client.dropped_messages += 1
         assert client.dropped_messages == 1
-

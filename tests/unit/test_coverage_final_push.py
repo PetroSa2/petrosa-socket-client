@@ -15,7 +15,6 @@ from socket_client.core.client import BinanceWebSocketClient
 from socket_client.health.server import HealthServer
 from socket_client.models.message import WebSocketMessage, validate_message
 
-
 # =============================================================================
 # CLIENT COMPREHENSIVE TESTS
 # =============================================================================
@@ -168,7 +167,7 @@ class TestHealthServerMethods:
     async def test_start_method_exists(self):
         """Test start method exists."""
         server = HealthServer(port=9502)
-        
+
         assert hasattr(server, "start")
         assert callable(server.start)
 
@@ -176,7 +175,7 @@ class TestHealthServerMethods:
     async def test_stop_method_exists(self):
         """Test stop method exists."""
         server = HealthServer(port=9503)
-        
+
         assert hasattr(server, "stop")
         assert callable(server.stop)
 
@@ -184,7 +183,7 @@ class TestHealthServerMethods:
     async def test_health_check_method_callable(self):
         """Test health_check method is callable."""
         server = HealthServer(port=9504)
-        
+
         assert hasattr(server, "health_check")
         assert callable(server.health_check)
 
@@ -192,7 +191,7 @@ class TestHealthServerMethods:
     async def test_ready_check_method_callable(self):
         """Test ready_check method is callable."""
         server = HealthServer(port=9505)
-        
+
         assert hasattr(server, "ready_check")
         assert callable(server.ready_check)
 
@@ -200,7 +199,7 @@ class TestHealthServerMethods:
     async def test_metrics_method_callable(self):
         """Test metrics method is callable."""
         server = HealthServer(port=9506)
-        
+
         assert hasattr(server, "metrics")
         assert callable(server.metrics)
 
@@ -350,10 +349,11 @@ class TestHealthServerCompleteLifecycle:
     def test_server_creation_and_attributes(self):
         """Test server creation sets all attributes."""
         import time
+
         before = time.time()
-        
+
         server = HealthServer(port=9600)
-        
+
         after = time.time()
 
         # All attributes set
@@ -374,4 +374,3 @@ class TestHealthServerCompleteLifecycle:
 
         assert server.runner is None
         assert server.site is None
-

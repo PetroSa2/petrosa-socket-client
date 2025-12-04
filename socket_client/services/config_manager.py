@@ -20,19 +20,35 @@ class ConfigManager:
     def __init__(self):
         """Initialize configuration manager."""
         # Load from environment variables (defaults)
-        self._streams = os.getenv("BINANCE_STREAMS", "").split(",") if os.getenv("BINANCE_STREAMS") else []
+        self._streams = (
+            os.getenv("BINANCE_STREAMS", "").split(",")
+            if os.getenv("BINANCE_STREAMS")
+            else []
+        )
         self._reconnect_delay = int(os.getenv("WEBSOCKET_RECONNECT_DELAY", "5"))
-        self._max_reconnect_attempts = int(os.getenv("WEBSOCKET_MAX_RECONNECT_ATTEMPTS", "10"))
-        self._backoff_multiplier = float(os.getenv("WEBSOCKET_BACKOFF_MULTIPLIER", "2.0"))
-        self._failure_threshold = int(os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", "5"))
-        self._recovery_timeout = int(os.getenv("CIRCUIT_BREAKER_RECOVERY_TIMEOUT", "60"))
-        self._half_open_max_calls = int(os.getenv("CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS", "3"))
+        self._max_reconnect_attempts = int(
+            os.getenv("WEBSOCKET_MAX_RECONNECT_ATTEMPTS", "10")
+        )
+        self._backoff_multiplier = float(
+            os.getenv("WEBSOCKET_BACKOFF_MULTIPLIER", "2.0")
+        )
+        self._failure_threshold = int(
+            os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", "5")
+        )
+        self._recovery_timeout = int(
+            os.getenv("CIRCUIT_BREAKER_RECOVERY_TIMEOUT", "60")
+        )
+        self._half_open_max_calls = int(
+            os.getenv("CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS", "3")
+        )
 
     def get_streams(self) -> list[str]:
         """Get current stream subscriptions."""
         return self._streams.copy()
 
-    def set_streams(self, streams: list[str], changed_by: str, reason: Optional[str] = None) -> None:
+    def set_streams(
+        self, streams: list[str], changed_by: str, reason: Optional[str] = None
+    ) -> None:
         """Set stream subscriptions."""
         self._streams = streams
         logger.info(f"Streams updated by {changed_by}: {streams} (reason: {reason})")
@@ -81,7 +97,9 @@ class ConfigManager:
         self._failure_threshold = failure_threshold
         self._recovery_timeout = recovery_timeout
         self._half_open_max_calls = half_open_max_calls
-        logger.info(f"Circuit breaker config updated by {changed_by} (reason: {reason})")
+        logger.info(
+            f"Circuit breaker config updated by {changed_by} (reason: {reason})"
+        )
         # TODO: Persist to MongoDB and update circuit breaker
 
 
@@ -97,4 +115,3 @@ def set_config_manager(manager: ConfigManager) -> None:
     """Set the global config manager instance (for testing)."""
     global _config_manager
     _config_manager = manager
-

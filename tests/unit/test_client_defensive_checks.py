@@ -63,7 +63,7 @@ async def test_heartbeat_loop_defensive_check() -> None:
         pass  # Expected
 
 
-@pytest.mark.asyncio  
+@pytest.mark.asyncio
 async def test_websocket_listener_handles_none_websocket() -> None:
     """Test that _websocket_listener handles None websocket gracefully."""
     client = BinanceWebSocketClient(
@@ -129,4 +129,3 @@ async def test_last_ping_float_type() -> None:
     # Verify initial value is float
     assert isinstance(client.last_ping, float)
     assert client.last_ping == 0.0
-
