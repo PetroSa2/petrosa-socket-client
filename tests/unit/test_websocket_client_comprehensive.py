@@ -912,3 +912,163 @@ class TestHealthAndMonitoring:
         assert "connection_status" in metrics
         assert "uptime" in metrics
         assert metrics["streams"] == ["btcusdt@trade", "ethusdt@ticker"]
+
+
+@pytest.mark.unit
+class TestClientStartStopScenarios:
+    """Test various start/stop scenarios."""
+
+    @pytest.mark.asyncio
+    async def test_start_with_heartbeat_enabled(self):
+        """Test starting client with heartbeat enabled."""
+        with patch("constants.ENABLE_HEARTBEAT", True):
+            client = BinanceWebSocketClient(
+                ws_url="wss://test.com",
+                streams=["test@stream"],
+                nats_url="nats://localhost:4222",
+                nats_topic="test.topic",
+            )
+            
+            with (
+                patch.object(client, "_connect_nats", new_callable=AsyncMock),
+                patch.object(client, "_connect_websocket", new_callable=AsyncMock),
+                patch("asyncio.create_task") as mock_create_task,
+            ):
+                # Start and immediately trigger stop
+                start_task = asyncio.create_task(client.start())
+                await asyncio.sleep(0.1)
+                client.is_running = False
+                await start_task
+                
+                # Verify heartbeat task was created
+                assert mock_create_task.call_count >= 2  # processors + ping + maybe heartbeat
+
+    @pytest.mark.asyncio
+    async def test_start_failure_calls_stop(self):
+        """Test that start failure triggers cleanup via stop."""
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+        )
+        
+        with (
+            patch.object(client, "_connect_nats", side_effect=Exception("NATS failed")),
+            patch.object(client, "stop", new_callable=AsyncMock) as mock_stop,
+        ):
+            with pytest.raises(Exception, match="NATS failed"):
+                await client.start()
+            
+            # Verify stop was called in exception handler
+            mock_stop.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_cancels_ping_task(self):
+        """Test stop cancels ping task."""
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+        )
+        
+        # Create mock ping task
+        mock_ping_task = AsyncMock()
+        client.ping_task = mock_ping_task
+        
+        await client.stop()
+        
+        mock_ping_task.cancel.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_cancels_heartbeat_task(self):
+        """Test stop cancels heartbeat task."""
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+        )
+        
+        # Create mock heartbeat task
+        mock_heartbeat_task = AsyncMock()
+        client.heartbeat_task = mock_heartbeat_task
+        
+        await client.stop()
+        
+        mock_heartbeat_task.cancel.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_cancels_processor_tasks(self):
+        """Test stop cancels all processor tasks."""
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+        )
+        
+        # Create mock processor tasks
+        mock_tasks = [AsyncMock() for _ in range(3)]
+        client.processor_tasks = mock_tasks
+        
+        await client.stop()
+        
+        # Verify all tasks were cancelled
+        for task in mock_tasks:
+            task.cancel.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_closes_websocket(self):
+        """Test stop closes websocket connection."""
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+        )
+        
+        # Create mock websocket
+        mock_ws = AsyncMock()
+        client.websocket = mock_ws
+        
+        await client.stop()
+        
+        mock_ws.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_closes_nats(self):
+        """Test stop closes NATS connection."""
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+        )
+        
+        # Create mock NATS client
+        mock_nats = AsyncMock()
+        client.nats_client = mock_nats
+        
+        await client.stop()
+        
+        mock_nats.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_multiple_stop_calls(self):
+        """Test multiple stop calls are handled gracefully."""
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+        )
+        
+        # First stop
+        await client.stop()
+        assert client.is_running is False
+        
+        # Second stop should not raise error
+        await client.stop()
+        assert client.is_running is False
