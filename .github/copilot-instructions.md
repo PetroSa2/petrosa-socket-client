@@ -14,8 +14,8 @@
 
 **Data Flow**:
 ```
-Binance WebSocket → Socket Client → NATS (crypto.market.data) → TA Bot
-                                                                 → Realtime Strategies
+Binance WebSocket → Socket Client → NATS (market.binance.*) → TA Bot
+                                                               → Realtime Strategies
 ```
 
 **Key Components**:
@@ -40,8 +40,8 @@ async def _connect_websocket():
 # ✅ GOOD - Graceful shutdown
 async def stop():
     self.is_running = False
-    await cancel_all_tasks()
-    await close_connections()
+    # Cancel running tasks
+    # Close WebSocket and NATS connections gracefully
 
 # ❌ BAD - Abrupt shutdown
 def stop():
@@ -77,18 +77,18 @@ await nats_client.publish(topic, message)
 ## Testing Patterns
 
 ```python
-# Mock WebSocket
+# Mock WebSocket (see tests/conftest.py for actual fixtures)
 @pytest.fixture
 def mock_websocket():
-    with patch('websockets.connect') as mock:
-        mock.return_value = AsyncMock()
-        yield mock
+    # Use actual mock_websocket fixture from conftest.py
+    pass
 
-# Test reconnection
+# Test reconnection backoff strategy
 @pytest.mark.asyncio
 async def test_reconnection_backoff():
-    # Verify exponential backoff on failures
-    pass
+    # Verify exponential backoff increases delay after failures
+    # Test max_backoff ceiling is respected
+    assert backoff_delay < MAX_BACKOFF
 ```
 
 ---
@@ -101,6 +101,6 @@ async def test_reconnection_backoff():
 
 ---
 
-**Master Rules**: See `/Users/yurisa2/petrosa/petrosa_k8s/.cursorrules`  
+**Master Rules**: See `.cursorrules` in `petrosa_k8s` repo  
 **Service Rules**: `.cursorrules` in this repo
 
