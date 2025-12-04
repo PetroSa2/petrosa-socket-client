@@ -57,7 +57,7 @@ This document provides a detailed plan to achieve 90% test coverage for the Sock
 - 255-284: NATS publishing edge cases
 - 296-321: Shutdown sequences
 - 329-375: Error handling
-- 401-539: Recovery mechanisms
+- 401-574: Recovery mechanisms and error handling
 
 **Test Categories**:
 - [ ] Connection lifecycle (connect, disconnect, reconnect) (8 tests)
@@ -81,11 +81,13 @@ This document provides a detailed plan to achieve 90% test coverage for the Sock
 
 ### Medium Priority
 
-#### 3. `socket_client/services/config_manager.py` - **46.15% → 80%** (21 lines)
+#### 3. `socket_client/services/config_manager.py` - **46.15% → 80%** (21 lines - ~34 points)
 **Status**: Medium  
 **Impact**: Medium - Configuration management  
 **Estimated Tests**: 12-15 tests  
 **Estimated Time**: 1-1.5 hours
+
+**Note**: While 21 lines are uncovered, achieving 80% coverage requires covering ~13-14 of those lines (each line is worth ~2.5 percentage points).
 
 **Uncovered Lines**:
 - 23-29: MongoDB connection error handling
@@ -100,11 +102,13 @@ This document provides a detailed plan to achieve 90% test coverage for the Sock
 - [ ] Config saving (new, update, upsert) (4 tests)
 - [ ] Filter operations (3 tests)
 
-#### 4. `socket_client/health/server.py` - **46.60% → 80%** (55 lines)
+#### 4. `socket_client/health/server.py` - **46.60% → 80%** (55 lines - ~34 points)
 **Status**: Medium  
 **Impact**: Medium - Health monitoring  
 **Estimated Tests**: 10-12 tests  
 **Estimated Time**: 1 hour
+
+**Note**: With 103 total lines and 55 uncovered, currently 48 are covered (46.6%). To achieve 80%, need to cover ~34 additional lines (62% of uncovered lines).
 
 **Uncovered Lines**:
 - 70-81: Health check endpoint edge cases
