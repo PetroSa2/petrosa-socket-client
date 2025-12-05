@@ -499,3 +499,4 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/petrosa-realtime-st
 - For NATS topic structure and consumers: **See master § NATS Message Bus**
 - For deployment and scaling guidelines: **See master § Socket Client Configuration**
 - **CRITICAL**: For why horizontal scaling is forbidden: **See master § Deployment Patterns → Socket Client**
+- For pre-merge cleanup: **See master § Pre-Merge Intelligent Cleanup Workflow** - Cursor AI automatically reorganizes files, removes outdated content, and consolidates documentation before merges using semantic understanding
