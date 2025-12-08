@@ -60,6 +60,7 @@ def test_logger_mixin_log_methods() -> None:
     obj = TestClass()
 
     # Test all log methods
+    assert obj is not None
     obj.log_info("info message", key="value")
     obj.log_error("error message", error_code=500)
     obj.log_warning("warning message", warning_type="test")

@@ -118,8 +118,9 @@ class TestConfigManager:
         """Test configuration loading handles MongoDB exceptions."""
         config_manager.collection.find_one.side_effect = Exception("MongoDB error")
 
-        with pytest.raises(Exception, match="MongoDB error"):
+        with pytest.raises(Exception, match="MongoDB error") as exc_info:
             config_manager.load_config()
+        assert exc_info.value is not None
 
     def test_save_config_success(self, config_manager):
         """Test successful configuration saving."""
@@ -174,8 +175,9 @@ class TestConfigManager:
         config_data = {"streams": ["btcusdt@trade"]}
         config_manager.collection.update_one.side_effect = Exception("Write error")
 
-        with pytest.raises(Exception, match="Write error"):
+        with pytest.raises(Exception, match="Write error") as exc_info:
             config_manager.save_config(config_data)
+        assert exc_info.value is not None
 
     def test_get_streams_from_config(self, config_manager):
         """Test extracting streams from loaded configuration."""
@@ -197,8 +199,9 @@ class TestConfigManager:
             "socket_client.services.config_manager.MongoClient",
             side_effect=Exception("Connection failed"),
         ):
-            with pytest.raises(Exception, match="Connection failed"):
+            with pytest.raises(Exception, match="Connection failed") as exc_info:
                 ConfigManager()
+            assert exc_info.value is not None
 
     def test_empty_config_save(self, config_manager):
         """Test saving empty configuration."""
