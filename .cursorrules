@@ -21,6 +21,7 @@ The socket-client is a critical component in the data ingestion pipeline, proces
 
 - **Ecosystem Architecture**: See master § System Architecture Overview → Data Ingestion & Storage Layer
 - **Work Tracking**: See master § Centralized Work Tracking with GitHub Projects
+- **GitHub CLI Profile**: See master § Prerequisites & Installation → GitHub CLI Profile Configuration (CRITICAL: Always use `yurisa2` profile)
 - **NATS Topics**: See master § NATS Message Bus → `binance.websocket.data`
 - **Deployment Patterns**: See master § Socket Client Configuration
 - **Scaling Strategy**: See master § Deployment Patterns (WHY single replica is critical)
