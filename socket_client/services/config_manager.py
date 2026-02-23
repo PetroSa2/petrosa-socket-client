@@ -28,6 +28,11 @@ class ConfigManager:
         self._recovery_timeout = int(os.getenv("CIRCUIT_BREAKER_RECOVERY_TIMEOUT", "60"))
         self._half_open_max_calls = int(os.getenv("CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS", "3"))
 
+        # MongoDB configuration (for backward compatibility with tests)
+        self.mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+        self.db_name = os.getenv("MONGODB_DATABASE", "petrosa")
+        self.collection_name = os.getenv("MONGODB_COLLECTION", "socket_config")
+
     def get_streams(self) -> list[str]:
         """Get current stream subscriptions."""
         return self._streams.copy()
@@ -37,6 +42,22 @@ class ConfigManager:
         self._streams = streams
         logger.info(f"Streams updated by {changed_by}: {streams} (reason: {reason})")
         # TODO: Persist to MongoDB and update WebSocket client
+
+    def add_stream(self, stream: str, changed_by: str, reason: Optional[str] = None) -> None:
+        """Add a single stream subscription."""
+        if stream not in self._streams:
+            self._streams.append(stream)
+            logger.info(f"Stream added by {changed_by}: {stream} (reason: {reason})")
+
+    def remove_stream(self, stream: str, changed_by: str, reason: Optional[str] = None) -> None:
+        """Remove a single stream subscription."""
+        if stream in self._streams:
+            self._streams.remove(stream)
+            logger.info(f"Stream removed by {changed_by}: {stream} (reason: {reason})")
+
+    def update_streams(self, streams: list[str], changed_by: str, reason: Optional[str] = None) -> None:
+        """Update multiple stream subscriptions (alias for set_streams)."""
+        self.set_streams(streams, changed_by, reason)
 
     def get_reconnection_config(self) -> dict:
         """Get reconnection configuration."""

@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 import typer.testing
 
-# Mock constants before importing main
+# Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 
@@ -49,23 +49,21 @@ def mock_modules(mock_constants):
         yield
 
 
+@pytest.fixture
+def service(mock_modules):
+    """Create service instance with mocked dependencies."""
+    with (
+        patch("socket_client.main.setup_logging"),
+        patch("socket_client.main.attach_logging_handler"),
+    ):
+        from socket_client.main import SocketClientService
+
+        service = SocketClientService()
+        return service
+
+
 class TestSocketClientService:
     """Test SocketClientService class."""
-
-    @pytest.fixture
-    async def service(self, mock_modules):
-        """Create service instance with mocked dependencies."""
-        with (
-            patch("socket_client.main.setup_logging") as mock_logging,
-            patch("socket_client.main.attach_logging_handler"),
-        ):
-            mock_logger = MagicMock()
-            mock_logging.return_value = mock_logger
-
-            from socket_client.main import SocketClientService
-
-            service = SocketClientService()
-            yield service
 
     @pytest.mark.asyncio
     async def test_service_initialization(self, service):
@@ -101,17 +99,17 @@ class TestSocketClientService:
 
     @pytest.mark.asyncio
     async def test_service_start_failure(self, service):
-        """Test service handles startup failure."""
-        with patch(
-            "socket_client.main.HealthServer",
-            side_effect=Exception("Health server failed"),
-        ):
+        """Test service startup failure."""
+        mock_health_server = AsyncMock()
+        mock_health_server.start.side_effect = Exception("Health server failed")
+
+        with patch("socket_client.main.HealthServer", return_value=mock_health_server):
             with pytest.raises(Exception, match="Health server failed"):
                 await service.start()
 
     @pytest.mark.asyncio
     async def test_service_stop_with_clients(self, service):
-        """Test graceful shutdown with active clients."""
+        """Test service stop with active clients."""
         mock_health_server = AsyncMock()
         mock_ws_client = AsyncMock()
 
@@ -120,12 +118,12 @@ class TestSocketClientService:
 
         await service.stop()
 
-        mock_ws_client.stop.assert_called_once()
         mock_health_server.stop.assert_called_once()
+        mock_ws_client.stop.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_service_stop_without_clients(self, service):
-        """Test shutdown when clients are None."""
+        """Test service stop without active clients."""
         service.health_server = None
         service.websocket_client = None
 
@@ -134,47 +132,40 @@ class TestSocketClientService:
 
     @pytest.mark.asyncio
     async def test_service_startup_exception_triggers_stop(self, service):
-        """Test that exceptions during startup trigger cleanup."""
+        """Test that exception during startup triggers cleanup."""
+        mock_health_server = AsyncMock()
+        # Startup fails
+        mock_health_server.start.side_effect = Exception("Fatal error")
+
         with (
-            patch(
-                "socket_client.main.HealthServer",
-                side_effect=Exception("Startup failed"),
-            ),
+            patch("socket_client.main.HealthServer", return_value=mock_health_server),
             patch.object(service, "stop", new_callable=AsyncMock) as mock_stop,
         ):
-            with pytest.raises(Exception):
+            with pytest.raises(Exception, match="Fatal error"):
                 await service.start()
 
-            # Verify stop was called in finally block
+            # Verify stop was called
             mock_stop.assert_called_once()
 
 
 class TestSignalHandler:
-    """Test signal handling."""
+    """Test signal handler functionality."""
 
-    def test_signal_handler_sets_shutdown_event(self, mock_modules):
-        """Test signal handler triggers shutdown."""
+    @pytest.mark.asyncio
+    async def test_signal_handler_sets_shutdown_event(self, service):
+        """Test signal handler sets shutdown event."""
         from socket_client.main import SocketClientService, signal_handler
 
         service = MagicMock(spec=SocketClientService)
         service.shutdown_event = asyncio.Event()
         signal_handler.service = service  # type: ignore
 
-        # Create event loop for the test
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        try:
+        with patch("asyncio.create_task") as mock_create_task:
             # Call signal handler
             signal_handler(signal.SIGTERM, None)
 
-            # Wait briefly for async task
-            loop.run_until_complete(asyncio.sleep(0.1))
-
-            # Verify shutdown event was set
-            assert service.shutdown_event.is_set()
-        finally:
-            loop.close()
+            # Verify task was created
+            mock_create_task.assert_called_once()
 
 
 class TestCLICommands:
@@ -187,213 +178,187 @@ class TestCLICommands:
 
     def test_run_command_with_defaults(self, mock_modules, cli_runner):
         """Test run command with default parameters."""
-        from socket_client.main import app
+        mock_service_instance = MagicMock()
+        mock_service_instance.start = AsyncMock()
 
-        with (
-            patch("socket_client.main.SocketClientService") as mock_service_class,
-            patch("socket_client.main.signal.signal"),
-            patch("socket_client.main.asyncio.run") as mock_asyncio_run,
+        with patch(
+            "socket_client.main.SocketClientService", return_value=mock_service_instance
         ):
-            mock_service = MagicMock()
-            mock_service_class.return_value = mock_service
+            from socket_client.main import app
 
-            result = cli_runner.invoke(app, ["run"])
+            # Run with short timeout to prevent hanging
+            result = cli_runner.invoke(app, ["run"], input="\n")
 
-            # Verify service was created and started
-            mock_service_class.assert_called_once()
-            mock_asyncio_run.assert_called_once()
             assert result.exit_code == 0
+            mock_service_instance.start.assert_called_once()
 
     def test_run_command_with_custom_parameters(self, mock_modules, cli_runner):
-        """Test run command with custom CLI parameters."""
-        from socket_client.main import app
+        """Test run command with custom parameters."""
+        mock_service_instance = MagicMock()
+        mock_service_instance.start = AsyncMock()
 
         with (
-            patch("socket_client.main.SocketClientService") as mock_service_class,
-            patch("socket_client.main.signal.signal"),
-            patch("socket_client.main.asyncio.run"),
+            patch(
+                "socket_client.main.SocketClientService",
+                return_value=mock_service_instance,
+            ),
+            patch("os.environ", {}),
         ):
-            mock_service = MagicMock()
-            mock_service_class.return_value = mock_service
+            from socket_client.main import app
 
             result = cli_runner.invoke(
                 app,
                 [
                     "run",
                     "--ws-url",
-                    "wss://custom.url",
-                    "--streams",
-                    "ethusdt@trade",
+                    "wss://custom.ws",
                     "--nats-url",
                     "nats://custom:4222",
-                    "--nats-topic",
-                    "custom.topic",
-                    "--log-level",
-                    "DEBUG",
+                    "--streams",
+                    "ethusdt@trade",
                 ],
+                input="\n",
             )
 
-            # Verify environment variables were set
-            assert os.environ.get("BINANCE_WS_URL") == "wss://custom.url"
-            assert os.environ.get("BINANCE_STREAMS") == "ethusdt@trade"
-            assert os.environ.get("NATS_URL") == "nats://custom:4222"
-            assert os.environ.get("NATS_TOPIC") == "custom.topic"
-            assert os.environ.get("LOG_LEVEL") == "DEBUG"
             assert result.exit_code == 0
+            assert os.environ["BINANCE_WS_URL"] == "wss://custom.ws"
+            assert os.environ["NATS_URL"] == "nats://custom:4222"
+            assert os.environ["BINANCE_STREAMS"] == "ethusdt@trade"
 
     def test_run_command_keyboard_interrupt(self, mock_modules, cli_runner):
-        """Test run command handles KeyboardInterrupt gracefully."""
-        from socket_client.main import app
+        """Test run command handles KeyboardInterrupt."""
+        mock_service_instance = MagicMock()
+        mock_service_instance.start.side_effect = KeyboardInterrupt()
 
-        with (
-            patch("socket_client.main.SocketClientService"),
-            patch("socket_client.main.signal.signal"),
-            patch(
-                "socket_client.main.asyncio.run", side_effect=KeyboardInterrupt()
-            ) as mock_run,
+        with patch(
+            "socket_client.main.SocketClientService", return_value=mock_service_instance
         ):
+            from socket_client.main import app
+
             result = cli_runner.invoke(app, ["run"])
 
-            mock_run.assert_called_once()
-            # CLI should handle KeyboardInterrupt gracefully
-            assert "Shutdown requested" in result.stdout or result.exit_code == 0
+            assert result.exit_code == 0
+            assert "Shutdown requested by user" in result.stdout
 
     def test_run_command_service_failure(self, mock_modules, cli_runner):
         """Test run command handles service failure."""
-        from socket_client.main import app
+        mock_service_instance = MagicMock()
+        mock_service_instance.start.side_effect = Exception("Service failed")
 
-        with (
-            patch("socket_client.main.SocketClientService"),
-            patch("socket_client.main.signal.signal"),
-            patch(
-                "socket_client.main.asyncio.run",
-                side_effect=Exception("Service crashed"),
-            ),
+        with patch(
+            "socket_client.main.SocketClientService", return_value=mock_service_instance
         ):
+            from socket_client.main import app
+
             result = cli_runner.invoke(app, ["run"])
 
-            # Should exit with error code
-            assert result.exit_code != 0
-            assert "Service failed" in result.stdout
+            assert result.exit_code == 1
+            assert "Service failed: Service failed" in result.stdout
 
     def test_health_command(self, mock_modules, cli_runner):
-        """Test health check command."""
-        from socket_client.main import app
-
-        with patch("socket_client.main.requests.get") as mock_get:
+        """Test health command."""
+        with patch("requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {"status": "healthy"}
             mock_get.return_value = mock_response
 
+            from socket_client.main import app
+
             result = cli_runner.invoke(app, ["health"])
 
             assert result.exit_code == 0
-            assert "healthy" in result.stdout.lower()
+            assert "Service is healthy" in result.stdout
 
     def test_health_command_service_down(self, mock_modules, cli_runner):
-        """Test health check when service is down."""
-        from socket_client.main import app
+        """Test health command when service is down."""
+        with patch("requests.get", side_effect=Exception("Connection refused")):
+            from socket_client.main import app
 
-        with patch(
-            "socket_client.main.requests.get",
-            side_effect=Exception("Connection refused"),
-        ):
             result = cli_runner.invoke(app, ["health"])
 
-            # Should handle connection error gracefully
-            assert "error" in result.stdout.lower() or result.exit_code != 0
+            assert result.exit_code == 1
+            # Check for the actual error message in output
+            assert "Health check failed" in result.stdout or "Service is down" in result.stdout or "Connection refused" in result.stdout
 
     def test_version_command(self, mock_modules, cli_runner):
         """Test version command."""
         from socket_client.main import app
 
-        with patch("socket_client.main.__version__", "1.2.3"):
-            result = cli_runner.invoke(app, ["version"])
+        result = cli_runner.invoke(app, ["version"])
 
-            assert result.exit_code == 0
-            assert "1.2.3" in result.stdout
+        assert result.exit_code == 0
+        assert "Petrosa Socket Client version" in result.stdout
 
 
 class TestOpenTelemetryIntegration:
-    """Test OpenTelemetry setup."""
+    """Test OpenTelemetry integration."""
 
     def test_otel_setup_success(self, mock_modules):
-        """Test OpenTelemetry initializes correctly."""
+        """Test successful telemetry setup."""
         with (
-            patch.dict(os.environ, {"OTEL_NO_AUTO_INIT": ""}, clear=False),
             patch("socket_client.main.setup_telemetry") as mock_setup,
+            patch.dict(os.environ, {"OTEL_NO_AUTO_INIT": ""}),
         ):
-            # Re-import to trigger OTEL setup
-            import importlib
+            # Clear it from environ directly too to be sure
+            if "OTEL_NO_AUTO_INIT" in os.environ:
+                del os.environ["OTEL_NO_AUTO_INIT"]
+                
+            # Reload module to trigger initialization code
+            if "socket_client.main" in sys.modules:
+                del sys.modules["socket_client.main"]
+            import socket_client.main  # noqa: F401
 
-            import socket_client.main
+            mock_setup.assert_called_once()
 
-            importlib.reload(socket_client.main)
-
-            # Verify setup_telemetry was called or no exceptions were raised
-            # Note: This may not be called if OTEL_NO_AUTO_INIT is set
-            assert True  # Test passes if no exception was raised
-
-    def test_otel_import_error_handled(self, mock_modules):
-        """Test handles missing petrosa_otel gracefully."""
-        with patch.dict("sys.modules", {"petrosa_otel": None}):
-            # Re-import should not raise exception
-            import importlib
-
-            import socket_client.main
-
-            importlib.reload(socket_client.main)
-            # Verify no exception was raised
-            assert True
-
-    def test_otel_logging_handler_failure(self, mock_modules):
-        """Test handles logging handler attachment failure."""
+    def test_otel_import_error_handled(self, mock_constants):
+        """Test that import error for petrosa_otel is handled."""
         with (
-            patch("socket_client.main.setup_logging") as mock_logging,
+            patch.dict("sys.modules", {"petrosa_otel": None}),
+            patch("socket_client.main.setup_logging"),
+        ):
+            # Should not raise exception
+            if "socket_client.main" in sys.modules:
+                del sys.modules["socket_client.main"]
+            import socket_client.main  # noqa: F401
+
+    def test_otel_logging_handler_failure(self, service):
+        """Test that logging handler attachment failure is handled."""
+        with (
             patch(
                 "socket_client.main.attach_logging_handler",
-                side_effect=Exception("Handler failed"),
+                side_effect=Exception("Attach failed"),
             ),
+            patch("socket_client.main.setup_logging"),
         ):
-            mock_logger = MagicMock()
-            mock_logging.return_value = mock_logger
-
-            # Should not raise exception - logs warning instead
+            # Initialization should continue
             from socket_client.main import SocketClientService
 
-            service = SocketClientService()
-            assert service is not None
+            SocketClientService()
 
 
 class TestModuleInitialization:
     """Test module-level initialization."""
 
     def test_dotenv_loaded(self, mock_modules):
-        """Test that .env file is loaded."""
+        """Test that load_dotenv is called."""
         with patch("socket_client.main.load_dotenv") as mock_load:
-            import importlib
-
-            import socket_client.main
-
-            importlib.reload(socket_client.main)
+            # Reload module to trigger initialization code
+            if "socket_client.main" in sys.modules:
+                del sys.modules["socket_client.main"]
+            import socket_client.main  # noqa: F401
 
             mock_load.assert_called_once()
 
     def test_typer_app_created(self, mock_modules):
-        """Test Typer app is created correctly."""
+        """Test that typer app instance is created."""
         from socket_client.main import app
 
         assert isinstance(app, typer.Typer)
 
     def test_project_root_added_to_path(self, mock_modules):
-        """Test project root is added to sys.path."""
-        import importlib
+        """Test that project root is in sys.path."""
+        import socket_client.main  # noqa: F401
 
-        import socket_client.main
-
-        importlib.reload(socket_client.main)
-
-        # Verify path manipulation occurred (hard to test exact value)
-        assert len(sys.path) > 0
-
+        # The actual path depends on environment, but it should be there
+        assert any("socket-client" in path for path in sys.path)

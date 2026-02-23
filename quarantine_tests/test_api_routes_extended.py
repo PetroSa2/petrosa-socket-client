@@ -19,7 +19,7 @@ def mock_config_manager_extended():
 
     # Default successful responses
     manager.get_streams.return_value = ["btcusdt@trade"]
-    manager.add_stream.return_value = {"success": True}
+    manager.set_streams.return_value = {"success": True}
     manager.remove_stream.return_value = {"success": True}
     manager.update_streams.return_value = {"success": True}
     manager.get_reconnection_config.return_value = {

@@ -12,8 +12,18 @@ import signal
 import sys
 from typing import Any, Optional
 
+import requests
 import typer
 from dotenv import load_dotenv
+
+# Optional OpenTelemetry imports
+try:
+    from petrosa_otel import attach_logging_handler, setup_telemetry
+except ImportError:
+    setup_telemetry = None
+    attach_logging_handler = None
+
+__version__ = "1.0.0"
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -191,9 +201,7 @@ def health() -> None:
 @app.command()
 def version() -> None:
     """Show version information."""
-    from socket_client import __version__
-
-    print(f"Petrosa Socket Client v{__version__}")
+    print(f"Petrosa Socket Client version: {__version__}")
 
 
 if __name__ == "__main__":

@@ -28,9 +28,8 @@ class TestConnectWebSocket:
         mock_ws = AsyncMock()
         
         with patch("websockets.connect", return_value=mock_ws):
-            result = await client._connect_websocket()
+            await client._connect_websocket()
             
-            assert result is True
             assert client.websocket is not None
             assert client.is_connected is True
 
@@ -50,10 +49,11 @@ class TestConnectWebSocket:
             "socket_client.utils.circuit_breaker.websocket_circuit_breaker.call",
             side_effect=CircuitBreakerOpenError("Circuit open"),
         ):
-            result = await client._connect_websocket()
+            with pytest.raises(CircuitBreakerOpenError, match="Circuit open"):
+                await client._connect_websocket()
             
-            assert result is False
             assert client.websocket is None
+            assert client.is_connected is False
 
     @pytest.mark.asyncio
     async def test_connect_websocket_generic_exception(self):
@@ -66,9 +66,10 @@ class TestConnectWebSocket:
         )
 
         with patch("websockets.connect", side_effect=Exception("Connection refused")):
-            result = await client._connect_websocket()
+            with pytest.raises(Exception, match="Connection refused"):
+                await client._connect_websocket()
             
-            assert result is False
+            assert client.is_connected is False
 
 
 @pytest.mark.unit
@@ -88,9 +89,8 @@ class TestConnectNATS:
         mock_nats = AsyncMock()
         
         with patch("nats.connect", return_value=mock_nats):
-            result = await client._connect_nats()
+            await client._connect_nats()
             
-            assert result is True
             assert client.nats_client is not None
 
     @pytest.mark.asyncio
@@ -109,9 +109,9 @@ class TestConnectNATS:
             "socket_client.utils.circuit_breaker.nats_circuit_breaker.call",
             side_effect=CircuitBreakerOpenError("Circuit open"),
         ):
-            result = await client._connect_nats()
+            with pytest.raises(CircuitBreakerOpenError, match="Circuit open"):
+                await client._connect_nats()
             
-            assert result is False
             assert client.nats_client is None
 
     @pytest.mark.asyncio
@@ -125,9 +125,8 @@ class TestConnectNATS:
         )
 
         with patch("nats.connect", side_effect=Exception("NATS unavailable")):
-            result = await client._connect_nats()
-            
-            assert result is False
+            with pytest.raises(Exception, match="NATS unavailable"):
+                await client._connect_nats()
 
 
 @pytest.mark.unit

@@ -18,11 +18,15 @@ Pytest configuration and fixtures for the Socket Client service.
 """
 
 import asyncio
-from unittest.mock import AsyncMock
+import os
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from socket_client.core.client import BinanceWebSocketClient
+
+# Disable OpenTelemetry auto-initialization during tests
+os.environ["OTEL_NO_AUTO_INIT"] = "1"
 
 
 @pytest.fixture
@@ -55,26 +59,26 @@ def sample_ticker_message() -> dict:
             "e": "24hrTicker",
             "E": 123456789,
             "s": "BTCUSDT",
-            "p": "0.0015",
-            "P": "250.00",
-            "w": "0.0018",
+            "p": "0.001",
+            "P": "0.1",
+            "w": "0.001",
             "x": "0.0009",
-            "c": "0.0025",
+            "c": "0.0011",
             "Q": "10",
-            "b": "4.00000000",
-            "B": "431.00000000",
-            "a": "4.00000200",
-            "A": "12.00000000",
-            "o": "0.00150000",
-            "h": "0.00250000",
-            "l": "0.00100000",
-            "v": "10000.00000000",
-            "q": "18.00000000",
-            "O": 0,
-            "C": 86400000,
+            "b": "0.001",
+            "B": "100",
+            "a": "0.0012",
+            "A": "200",
+            "o": "0.001",
+            "h": "0.0013",
+            "l": "0.0008",
+            "v": "10000",
+            "q": "10",
+            "O": 123456780,
+            "C": 123456789,
             "F": 0,
-            "L": 18150,
-            "n": 18151,
+            "L": 100,
+            "n": 101,
         },
     }
 
@@ -83,37 +87,48 @@ def sample_ticker_message() -> dict:
 def sample_depth_message() -> dict:
     """Sample depth message from Binance WebSocket."""
     return {
-        "stream": "btcusdt@depth20@100ms",
+        "stream": "btcusdt@depth5",
         "data": {
-            "e": "depthUpdate",
-            "E": 123456789,
-            "s": "BTCUSDT",
-            "U": 1,
-            "u": 2,
-            "b": [["0.0024", "10"], ["0.0022", "5"]],
-            "a": [["0.0026", "100"], ["0.0028", "50"]],
+            "lastUpdateId": 160,
+            "bids": [["0.001", "100"], ["0.0009", "200"]],
+            "asks": [["0.0011", "150"], ["0.0012", "300"]],
         },
     }
 
 
 @pytest.fixture
-def mock_websocket() -> AsyncMock:
+def mock_websocket():
     """Mock WebSocket connection."""
     mock_ws = AsyncMock()
-    mock_ws.closed = False
     mock_ws.send = AsyncMock()
     mock_ws.close = AsyncMock()
+    # Mock async iterator behavior
+    mock_ws.__aiter__.return_value = []
     return mock_ws
 
 
 @pytest.fixture
-def mock_nats_client() -> AsyncMock:
+def mock_nats_client():
     """Mock NATS client."""
-    mock_nats = AsyncMock()
-    mock_nats.is_closed = False
-    mock_nats.publish = AsyncMock()
-    mock_nats.close = AsyncMock()
-    return mock_nats
+    mock_nc = AsyncMock()
+    mock_nc.connect = AsyncMock()
+    mock_nc.publish = AsyncMock()
+    mock_nc.close = AsyncMock()
+    return mock_nc
+
+
+@pytest.fixture
+def mock_nats_connect(mock_nats_client):
+    """Mock nats.connect function."""
+    with patch("nats.connect", return_value=mock_nats_client) as mock_connect:
+        yield mock_connect
+
+
+@pytest.fixture
+def mock_websockets_connect(mock_websocket):
+    """Mock websockets.connect function."""
+    with patch("websockets.connect", return_value=mock_websocket) as mock_connect:
+        yield mock_connect
 
 
 @pytest.fixture
@@ -125,68 +140,30 @@ def websocket_client(mock_websocket, mock_nats_client):  # type: ignore[no-untyp
         nats_url="nats://localhost:4222",
         nats_topic="test.topic",
     )
-
-    # Mock the connections
     client.websocket = mock_websocket
     client.nats_client = mock_nats_client
-
     return client
 
 
 @pytest.fixture
 def test_streams() -> list[str]:
-    """Test streams for WebSocket client."""
-    return ["btcusdt@trade", "btcusdt@ticker", "ethusdt@trade"]
+    """Test stream list."""
+    return ["btcusdt@trade", "ethusdt@ticker", "bnbusdt@depth5"]
 
 
 @pytest.fixture
 def test_config() -> dict:
-    """Test configuration."""
+    """Test configuration dictionary."""
     return {
         "ws_url": "wss://test.binance.com",
         "nats_url": "nats://localhost:4222",
         "nats_topic": "test.topic",
         "streams": ["btcusdt@trade"],
-        "max_reconnect_attempts": 3,
-        "reconnect_delay": 1,
     }
 
 
 @pytest.fixture
-def event_loop():  # type: ignore[no-untyped-def]
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture
-def mock_websockets_connect(monkeypatch) -> None:
-    """Mock websockets.connect."""
-    mock_connect = AsyncMock()
-    monkeypatch.setattr("websockets.connect", mock_connect)
-    return mock_connect
-
-
-@pytest.fixture
-def mock_nats_connect(monkeypatch) -> None:
-    """Mock nats.connect."""
-    mock_connect = AsyncMock()
-    monkeypatch.setattr("nats.connect", mock_connect)
-    return mock_connect
-
-
-@pytest.fixture
-def mock_aiohttp_client_session(monkeypatch) -> AsyncMock:
+def mock_aiohttp_client_session():
     """Mock aiohttp ClientSession."""
-    mock_session = AsyncMock()
-    mock_session.get = AsyncMock()
-    mock_session.post = AsyncMock()
-    mock_session.close = AsyncMock()
-
-    mock_client_session = AsyncMock()
-    mock_client_session.__aenter__.return_value = mock_session
-    mock_client_session.__aexit__.return_value = None
-
-    monkeypatch.setattr("aiohttp.ClientSession", mock_client_session)
-    return mock_session
+    with patch("aiohttp.ClientSession") as mock_session:
+        yield mock_session
