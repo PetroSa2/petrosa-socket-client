@@ -574,9 +574,13 @@ class BinanceWebSocketClient:
         return {
             "is_connected": self.is_connected,
             "is_running": self.is_running,
+            "connection_status": "connected" if self.is_connected else "disconnected",
             "reconnect_attempts": self.reconnect_attempts,
             "processed_messages": self.processed_messages,
             "dropped_messages": self.dropped_messages,
+            "stream_count": len(self.streams),
+            "streams": self.streams.copy(),
+            "uptime": uptime,
             "queue_size": self.message_queue.qsize(),
             "last_message_time": self.last_message_time,
             "last_ping": self.last_ping,

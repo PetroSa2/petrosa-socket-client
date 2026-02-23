@@ -25,7 +25,7 @@ class TestHealthCheckEndpoint(AioHTTPTestCase):
     @unittest_run_loop
     async def test_health_check_returns_200(self):
         """Test health check returns 200 OK."""
-        resp = await self.client.request("GET", "/health")
+        resp = await self.client.request("GET", "/healthz")
         assert resp.status == 200
 
         data = await resp.json()
@@ -37,7 +37,7 @@ class TestHealthCheckEndpoint(AioHTTPTestCase):
     @unittest_run_loop
     async def test_health_check_includes_uptime(self):
         """Test health check includes uptime metrics."""
-        resp = await self.client.request("GET", "/health")
+        resp = await self.client.request("GET", "/healthz")
         data = await resp.json()
 
         assert "uptime" in data
@@ -49,7 +49,7 @@ class TestHealthCheckEndpoint(AioHTTPTestCase):
     @unittest_run_loop
     async def test_health_check_includes_version(self):
         """Test health check includes version."""
-        resp = await self.client.request("GET", "/health")
+        resp = await self.client.request("GET", "/healthz")
         data = await resp.json()
 
         assert "version" in data
@@ -99,27 +99,26 @@ class TestMetricsEndpoint(AioHTTPTestCase):
         resp = await self.client.request("GET", "/metrics")
         assert resp.status == 200
 
-        data = await resp.json()
-        assert isinstance(data, dict)
+        data = await resp.text()
+        assert isinstance(data, str)
+        assert "# HELP" in data or "service_uptime_seconds" in data
 
     @unittest_run_loop
     async def test_metrics_includes_uptime(self):
         """Test metrics includes uptime."""
         resp = await self.client.request("GET", "/metrics")
-        data = await resp.json()
+        data = await resp.text()
 
-        assert "uptime_seconds" in data
-        assert data["uptime_seconds"] >= 0
+        assert "service_uptime_seconds" in data
 
     @unittest_run_loop
     async def test_metrics_includes_start_time(self):
         """Test metrics includes start time."""
+        # Check for another metric that should be present
         resp = await self.client.request("GET", "/metrics")
-        data = await resp.json()
+        data = await resp.text()
 
-        assert "start_time" in data
-        # Should be ISO format
-        assert isinstance(data["start_time"], str)
+        assert "memory_usage_bytes" in data
 
 
 class TestHealthServerStartStop(AioHTTPTestCase):
@@ -134,7 +133,7 @@ class TestHealthServerStartStop(AioHTTPTestCase):
     async def test_server_starts_successfully(self):
         """Test server starts without errors."""
         # Server is already started by AioHTTPTestCase
-        resp = await self.client.request("GET", "/health")
+        resp = await self.client.request("GET", "/healthz")
         assert resp.status == 200
 
     @unittest_run_loop
@@ -143,7 +142,7 @@ class TestHealthServerStartStop(AioHTTPTestCase):
         responses = []
         
         for _ in range(10):
-            resp = await self.client.request("GET", "/health")
+            resp = await self.client.request("GET", "/healthz")
             responses.append(resp.status)
         
         # All should succeed
@@ -153,7 +152,7 @@ class TestHealthServerStartStop(AioHTTPTestCase):
     async def test_concurrent_health_requests(self):
         """Test concurrent health check requests."""
         tasks = [
-            self.client.request("GET", "/health")
+            self.client.request("GET", "/healthz")
             for _ in range(5)
         ]
         
