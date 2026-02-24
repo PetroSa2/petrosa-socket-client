@@ -321,6 +321,7 @@ class TestOpenTelemetryIntegration:
             if "socket_client.main" in sys.modules:
                 del sys.modules["socket_client.main"]
             import socket_client.main  # noqa: F401
+            assert "socket_client.main" in sys.modules
 
     def test_otel_logging_handler_failure(self, service):
         """Test that logging handler attachment failure is handled."""
@@ -334,7 +335,8 @@ class TestOpenTelemetryIntegration:
             # Initialization should continue
             from socket_client.main import SocketClientService
 
-            SocketClientService()
+            instance = SocketClientService()
+            assert instance is not None
 
 
 class TestModuleInitialization:
