@@ -59,8 +59,9 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 |---------|---------|-------|--------|--------|
 | **petrosa-socket-client** | Real-time WebSocket data ingestion | Binance WebSocket API | NATS: `binance.websocket.data` | **YOU ARE HERE** |
 | **petrosa-binance-data-extractor** | Historical data extraction & gap filling | Binance REST API | MySQL (klines, funding rates, trades) | Batch Processing |
-| **petrosa-bot-ta-analysis** | Technical analysis (28 strategies) | MySQL klines data | NATS: `signals.trading` | Signal Generation |
-| **petrosa-realtime-strategies** | Real-time signal generation | NATS: `binance.websocket.data` | NATS: `signals.trading` | Live Processing |
+| **petrosa-bot-ta-analysis** | Technical analysis (28 strategies) | MySQL klines data | NATS: `intent.trading.*` | Signal Generation |
+| **petrosa-cio** | Centralized orchestrator & gatekeeper | NATS: `intent.>` | NATS: `signals.trading` | Interception Layer |
+| **petrosa-realtime-strategies** | Real-time signal generation | NATS: `binance.websocket.data` | NATS: `intent.trading.*` | Live Processing |
 | **petrosa-tradeengine** | Order execution & trade management | NATS: `signals.trading` | Binance Orders API, MongoDB audit | Order Execution |
 | **petrosa_k8s** | Centralized infrastructure | Kubernetes manifests | Cluster resources | Infrastructure |
 
