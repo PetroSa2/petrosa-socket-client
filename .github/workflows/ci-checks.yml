@@ -100,10 +100,10 @@ jobs:
 
       - name: Check test assertions
         run: |
-          # Find all test files and check them
-          TEST_FILES=$(find . -type f -name "test_*.py" -o -name "*_test.py" | grep -v ".venv" | grep -v "__pycache__" || true)
+          # Check only canonical test suite to avoid script/quarantine false positives
+          TEST_FILES=$(find tests -type f \( -name "test_*.py" -o -name "*_test.py" \) | grep -v "__pycache__" || true)
           if [ -z "$TEST_FILES" ]; then
-            echo "⚠️  No test files found - skipping test quality check"
+            echo "⚠️  No test files found under tests/ - skipping test quality check"
             exit 0
           fi
           echo "Found test files:"
