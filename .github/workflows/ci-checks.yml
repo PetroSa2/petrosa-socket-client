@@ -140,7 +140,7 @@ jobs:
 
       - name: 🐍 Run Bandit (Python Security)
         run: |
-          pip install bandit==1.7.5
+          pip install bandit==1.7.5 pbr
           bandit -r . \
             --configfile pyproject.toml \
             --format json \
