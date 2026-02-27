@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "petrosa-socket-client"
-version = "1.0.9"
+version = "1.1.42"
 description = "Binance WebSocket client for real-time data streaming"
 readme = "README.md"
 license = {text = "MIT"}
