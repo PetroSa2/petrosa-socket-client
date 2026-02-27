@@ -130,7 +130,6 @@ jobs:
 
       - name: 🔐 Run Gitleaks (Secret Detection)
         uses: gitleaks/gitleaks-action@v2
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
@@ -141,11 +140,10 @@ jobs:
           python-version: '3.11'
 
       - name: 🐍 Run Bandit (Python Security)
-        continue-on-error: true
         run: |
-          pip install bandit[toml]
+          pip install bandit==1.7.5
           bandit -r . \
-            --configfile .bandit \
+            --configfile pyproject.toml \
             --format json \
             --output bandit-report.json
           echo "📊 Bandit Results:"
