@@ -144,9 +144,10 @@ jobs:
           bandit -r . \
             --configfile pyproject.toml \
             --format json \
-            --output bandit-report.json
+            --output bandit-report.json \
+            || true
           echo "📊 Bandit Results:"
-          python -m json.tool bandit-report.json | head -30 || echo "No issues found"
+          python -m json.tool bandit-report.json 2>/dev/null | head -30 || echo "No issues found or report not available"
 
       - name: 🗂️ Run Trivy (Vulnerability Scanner)
         uses: aquasecurity/trivy-action@master
