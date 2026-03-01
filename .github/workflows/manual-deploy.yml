@@ -3,14 +3,7 @@ name: Manual Deployment with Version Bump
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Target environment'
-        required: true
-        type: choice
-        options:
-          - staging
-          - production
-        default: staging
+
       version_bump:
         description: 'Version bump type'
         required: true
@@ -32,7 +25,6 @@ jobs:
   version-and-deploy:
     name: Version Bump & Deploy
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
     permissions:
       contents: write
       packages: write
@@ -66,7 +58,6 @@ jobs:
 
       - name: Create git tag
         run: |
-          git tag -a "${{ steps.bump_version.outputs.new_version }}" -m "Manual deployment to ${{ inputs.environment }}: ${{ inputs.reason }}"
           git push origin "${{ steps.bump_version.outputs.new_version }}"
           echo "✅ Created and pushed tag: ${{ steps.bump_version.outputs.new_version }}"
 
@@ -122,10 +113,10 @@ jobs:
         run: |
           VERSION="${{ steps.bump_version.outputs.new_version }}"
           # Update the image tag in manifests
-          find petrosa_k8s/k8s/socket-client -name "*.yaml" -o -name "*.yml" | xargs sed -i "s/VERSION_PLACEHOLDER/$VERSION/g"
+          find petrosa_k8s/k8s/socket-client -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -i "s/VERSION_PLACEHOLDER/$VERSION/g"
           
           # Also update the version label if needed
-          find petrosa_k8s/k8s/socket-client -name "*.yaml" -o -name "*.yml" | xargs sed -i "s/version: VERSION_PLACEHOLDER/version: $VERSION/g"
+          find petrosa_k8s/k8s/socket-client -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -i "s/version: VERSION_PLACEHOLDER/version: $VERSION/g"
           
           echo "Updated socket-client image tag to $VERSION in petrosa_k8s/k8s/socket-client/"
 
@@ -151,7 +142,6 @@ jobs:
 
           echo ""
           echo "📊 Deployment Summary:"
-          echo "  ✅ Manual deployment to ${{ inputs.environment }} completed successfully"
           echo "  🐳 Image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-socket-client:${{ steps.bump_version.outputs.new_version }}"
           echo "  📍 Namespace: ${{ env.NAMESPACE }}"
           echo "  🏷️  Version: ${{ steps.bump_version.outputs.new_version }}"
@@ -173,12 +163,10 @@ jobs:
       - name: Notify Status
         run: |
           if [ "${{ needs.version-and-deploy.result }}" == "success" ]; then
-            echo "✅ Manual deployment to ${{ inputs.environment }} successful!"
             echo "📝 Reason: ${{ inputs.reason }}"
             echo "👤 Triggered by: ${{ github.actor }}"
             echo "🕒 Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           else
-            echo "❌ Manual deployment to ${{ inputs.environment }} failed!"
             echo "📝 Reason: ${{ inputs.reason }}"
             echo "👤 Triggered by: ${{ github.actor }}"
             echo "🕒 Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
