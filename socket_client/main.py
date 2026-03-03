@@ -14,28 +14,8 @@ from typing import Any, Optional
 
 from dotenv import load_dotenv
 
-# Load environment variables FIRST so they are available for OTEL setup
+# Load environment variables FIRST
 load_dotenv()
-
-# 1. Setup OpenTelemetry FIRST (before any other imports that might use it)
-try:
-    from petrosa_otel import attach_logging_handler, setup_telemetry
-    # Inverted logic: call setup_telemetry() manually ONLY if auto-init is disabled
-    # via OTEL_NO_AUTO_INIT=1. This avoids conflicts with opentelemetry-instrument auto-init.
-    if os.getenv("OTEL_NO_AUTO_INIT"):
-        service_name = os.getenv("OTEL_SERVICE_NAME", "socket-client")
-        setup_telemetry(
-            service_name=service_name,
-            service_type="async",
-            auto_attach_logging=True,
-        )
-        # Also ensure logging handler is attached for this process
-        attach_logging_handler()
-except (ImportError, Exception) as e:
-    if not isinstance(e, ImportError):
-        print(f"⚠️  OpenTelemetry setup failed: {e}")
-    setup_telemetry = None
-    attach_logging_handler = None
 
 import requests
 import typer
@@ -44,7 +24,7 @@ import typer
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 import constants  # noqa: E402
 from socket_client.core.client import BinanceWebSocketClient  # noqa: E402
@@ -59,6 +39,7 @@ class SocketClientService:
 
     def __init__(self) -> None:
         """Initialize the service."""
+        # Standard library logging is configured here
         self.logger = setup_logging(level=constants.LOG_LEVEL)
 
         self.websocket_client: Optional[BinanceWebSocketClient] = None
@@ -100,106 +81,102 @@ class SocketClientService:
             await self.stop()
 
     async def stop(self) -> None:
-        """Stop the service gracefully."""
+        """Stop the service."""
         self.logger.info("Stopping Petrosa Socket Client service")
 
-        # Stop WebSocket client
         if self.websocket_client:
             await self.websocket_client.stop()
-            self.logger.info("WebSocket client stopped")
 
-        # Stop health server
         if self.health_server:
             await self.health_server.stop()
-            self.logger.info("Health server stopped")
 
         self.logger.info("Service stopped gracefully")
 
 
-def signal_handler(signum: int, frame: Any) -> None:
-    """Handle shutdown signals."""
-    print(f"\nReceived signal {signum}, shutting down gracefully...")
+def signal_handler(signum, frame):
+    """Handle termination signals."""
+    print(f"\nReceived signal {signum}, shutting down...")
     if hasattr(signal_handler, "service"):
-        asyncio.create_task(signal_handler.service.shutdown_event.set())
+        signal_handler.service.shutdown_event.set()
 
 
 @app.command()
 def run(
-    ws_url: Optional[str] = typer.Option(
-        None, "--ws-url", help="Binance WebSocket URL"
-    ),
-    streams: Optional[str] = typer.Option(
-        None, "--streams", help="Comma-separated list of streams"
-    ),
+    ws_url: Optional[str] = typer.Option(None, "--ws-url", help="Binance WebSocket URL"),
     nats_url: Optional[str] = typer.Option(None, "--nats-url", help="NATS server URL"),
-    nats_topic: Optional[str] = typer.Option(
-        None, "--nats-topic", help="NATS topic for publishing"
-    ),
-    log_level: str = typer.Option(
-        constants.LOG_LEVEL, "--log-level", help="Logging level"
-    ),
-) -> None:
+    nats_topic: Optional[str] = typer.Option(None, "--nats-topic", help="NATS topic"),
+):
     """Run the Socket Client service."""
-    # Override constants with command line arguments
+    # Override configuration with CLI options if provided
     if ws_url:
-        os.environ["BINANCE_WS_URL"] = ws_url
-    if streams:
-        os.environ["BINANCE_STREAMS"] = streams
+        constants.BINANCE_WS_URL = ws_url
     if nats_url:
-        os.environ["NATS_URL"] = nats_url
+        constants.NATS_URL = nats_url
     if nats_topic:
-        os.environ["NATS_TOPIC"] = nats_topic
-    if log_level:
-        os.environ["LOG_LEVEL"] = log_level
+        constants.NATS_TOPIC = nats_topic
 
-    # Set up signal handlers
+    # Register signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    # Create and run service
+    # 1. Setup OpenTelemetry (before initializing the service)
+    try:
+        from petrosa_otel import setup_telemetry
+        if os.getenv("OTEL_NO_AUTO_INIT"):
+            service_name = os.getenv("OTEL_SERVICE_NAME", "socket-client")
+            setup_telemetry(
+                service_name=service_name,
+                service_type="async",
+                auto_attach_logging=False, # We'll attach after logging is configured
+            )
+    except (ImportError, Exception) as e:
+        if not isinstance(e, ImportError):
+            print(f"⚠️  OpenTelemetry setup failed: {e}")
+
+    # 2. Create service (this initializes logging)
     service = SocketClientService()
-    if attach_logging_handler:
-        try:
-            attach_logging_handler()
-        except Exception as e:
-            print(f"⚠️  Failed to attach OTLP logging handler: {e}")
-    else:
-        print("⚠️  petrosa_otel not found, skipping OTLP logging handler.")
     signal_handler.service = service  # type: ignore[attr-defined]
 
+    # 3. Attach OTel logging handler LAST (after logging is configured)
+    try:
+        from petrosa_otel import attach_logging_handler
+        attach_logging_handler()
+    except (ImportError, Exception) as e:
+        if not isinstance(e, ImportError):
+            print(f"⚠️  Failed to attach OTLP logging handler: {e}")
+
+    # Start the service
     try:
         asyncio.run(service.start())
     except KeyboardInterrupt:
-        print("\nShutdown requested by user")
+        pass
     except Exception as e:
         print(f"Service failed: {e}")
         sys.exit(1)
 
 
 @app.command()
-def health() -> None:
+def health():
     """Check service health."""
-    import requests
-
     try:
         response = requests.get(
             f"http://localhost:{constants.HEALTH_CHECK_PORT}/healthz", timeout=5
         )
         if response.status_code == 200:
             print("✅ Service is healthy")
-            print(f"Response: {response.json()}")
+            sys.exit(0)
         else:
-            print(f"❌ Service is unhealthy: {response.status_code}")
+            print(f"❌ Service is unhealthy (status: {response.status_code})")
             sys.exit(1)
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         print(f"❌ Health check failed: {e}")
         sys.exit(1)
 
 
 @app.command()
-def version() -> None:
+def version():
     """Show version information."""
-    print(f"Petrosa Socket Client version: {__version__}")
+    print(f"Petrosa Socket Client v{__version__}")
 
 
 if __name__ == "__main__":
