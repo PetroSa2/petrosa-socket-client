@@ -27,8 +27,10 @@ try:
         setup_telemetry(
             service_name=service_name,
             service_type="async",
-            auto_attach_logging=False,
+            auto_attach_logging=True,
         )
+        # Also ensure logging handler is attached for this process
+        attach_logging_handler()
 except (ImportError, Exception) as e:
     if not isinstance(e, ImportError):
         print(f"⚠️  OpenTelemetry setup failed: {e}")
