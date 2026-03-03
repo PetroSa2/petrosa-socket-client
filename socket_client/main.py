@@ -12,43 +12,42 @@ import signal
 import sys
 from typing import Any, Optional
 
-import requests
-import typer
 from dotenv import load_dotenv
 
-# Optional OpenTelemetry imports
+# Load environment variables FIRST so they are available for OTEL setup
+load_dotenv()
+
+# 1. Setup OpenTelemetry FIRST (before any other imports that might use it)
 try:
     from petrosa_otel import attach_logging_handler, setup_telemetry
-except ImportError:
+    # Inverted logic: call setup_telemetry() manually ONLY if auto-init is disabled
+    # via OTEL_NO_AUTO_INIT=1. This avoids conflicts with opentelemetry-instrument auto-init.
+    if os.getenv("OTEL_NO_AUTO_INIT"):
+        service_name = os.getenv("OTEL_SERVICE_NAME", "socket-client")
+        setup_telemetry(
+            service_name=service_name,
+            service_type="async",
+            auto_attach_logging=False,
+        )
+except (ImportError, Exception) as e:
+    if not isinstance(e, ImportError):
+        print(f"⚠️  OpenTelemetry setup failed: {e}")
     setup_telemetry = None
     attach_logging_handler = None
 
-__version__ = "1.0.0"
+import requests
+import typer
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+__version__ = "1.0.0"
+
 import constants  # noqa: E402
 from socket_client.core.client import BinanceWebSocketClient  # noqa: E402
 from socket_client.health.server import HealthServer  # noqa: E402
 from socket_client.utils.logger import setup_logging  # noqa: E402
-
-# Initialize OpenTelemetry as early as possible
-try:
-    from petrosa_otel import setup_telemetry  # noqa: E402
-
-    if not os.getenv("OTEL_NO_AUTO_INIT"):
-        setup_telemetry(
-            service_name=constants.OTEL_SERVICE_NAME,
-            service_type="async",
-            auto_attach_logging=False,  # Will attach manually after setup_logging()
-        )
-except ImportError:
-    pass
-
-# Load environment variables
-load_dotenv()
 
 app = typer.Typer(help="Petrosa Socket Client - Binance WebSocket client")
 
@@ -59,16 +58,6 @@ class SocketClientService:
     def __init__(self) -> None:
         """Initialize the service."""
         self.logger = setup_logging(level=constants.LOG_LEVEL)
-
-        # Set up OpenTelemetry and attach OTLP logging handler AFTER setup_logging()
-        # This ensures the handler survives any logging reconfiguration
-        try:
-            from petrosa_otel import attach_logging_handler
-
-            # Attach the OTLP logging handler to the root logger
-            attach_logging_handler()
-        except Exception as e:
-            print(f"⚠️  Failed to attach OTLP logging handler: {e}")
 
         self.websocket_client: Optional[BinanceWebSocketClient] = None
         self.health_server: Optional[HealthServer] = None
@@ -167,6 +156,13 @@ def run(
 
     # Create and run service
     service = SocketClientService()
+    if attach_logging_handler:
+        try:
+            attach_logging_handler()
+        except Exception as e:
+            print(f"⚠️  Failed to attach OTLP logging handler: {e}")
+    else:
+        print("⚠️  petrosa_otel not found, skipping OTLP logging handler.")
     signal_handler.service = service  # type: ignore[attr-defined]
 
     try:
