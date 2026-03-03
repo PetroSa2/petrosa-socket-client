@@ -25,6 +25,13 @@ from socket_client.utils.circuit_breaker import (
 
 logger = get_logger(__name__)
 
+# OpenTelemetry tracing
+try:
+    from petrosa_otel import get_tracer
+    tracer = get_tracer(__name__)
+except ImportError:
+    tracer = None
+
 
 class BinanceWebSocketClient:
     """Binance WebSocket client with NATS integration."""
@@ -191,6 +198,20 @@ class BinanceWebSocketClient:
 
     async def _connect_websocket(self) -> None:
         """Connect to Binance WebSocket."""
+        span_context = (
+            tracer.start_as_current_span("socket_client.connect_websocket")
+            if tracer
+            else None
+        )
+
+        if span_context:
+            with span_context as span:
+                await self._do_connect_websocket(span)
+        else:
+            await self._do_connect_websocket()
+
+    async def _do_connect_websocket(self, span: Any = None) -> None:
+        """Internal method for connecting to Binance WebSocket."""
         try:
             # Build subscription message
             subscribe_message = {
@@ -198,6 +219,10 @@ class BinanceWebSocketClient:
                 "params": self.streams,
                 "id": int(time.time() * 1000),
             }
+
+            if span:
+                span.set_attribute("ws_url", self.ws_url)
+                span.set_attribute("streams", self.streams)
 
             # Connect with circuit breaker protection
             connect = await websocket_circuit_breaker.call(
@@ -211,8 +236,14 @@ class BinanceWebSocketClient:
             # Get the actual connection from the context manager
             self.websocket = await connect.__aenter__()
 
+            if span:
+                span.add_event("websocket_connected")
+
             # Send subscription message
             await self.websocket.send(json.dumps(subscribe_message))
+
+            if span:
+                span.add_event("subscription_sent")
 
             # Start WebSocket listener
             self.websocket_task = asyncio.create_task(self._websocket_listener())
@@ -226,6 +257,8 @@ class BinanceWebSocketClient:
 
         except Exception as e:
             self.logger.error(f"Failed to connect to WebSocket: {e}")
+            if span:
+                span.record_exception(e)
             self.is_connected = False
             raise
 
@@ -322,6 +355,21 @@ class BinanceWebSocketClient:
 
     async def _process_single_message(self, data: dict) -> None:
         """Process a single message."""
+        # Use a context manager for the span if tracer is available
+        span_context = (
+            tracer.start_as_current_span("socket_client.process_message")
+            if tracer
+            else None
+        )
+
+        if span_context:
+            with span_context as span:
+                await self._do_process_single_message(data, span)
+        else:
+            await self._do_process_single_message(data)
+
+    async def _do_process_single_message(self, data: dict, span: Any = None) -> None:
+        """Internal method for processing a single message."""
         try:
             # Validate message format - Binance WebSocket messages come as direct JSON objects
             # Note: isinstance check is defensive code for runtime safety, though type hints declare dict
@@ -329,18 +377,29 @@ class BinanceWebSocketClient:
                 self.logger.warning(
                     "Invalid message format - not a dictionary", data=data
                 )
+                if span:
+                    span.set_attribute("error", "invalid_format")
                 return
 
             # Determine stream name from message type
             stream_name = self._determine_stream_name(data)
             if not stream_name:
                 self.logger.warning("Could not determine stream name", data=data)
+                if span:
+                    span.set_attribute("error", "unknown_stream")
                 return
 
+            if span:
+                span.set_attribute("stream", stream_name)
+
             # Create message object
+            message_id = str(uuid.uuid4())
             message = create_message(
-                stream=stream_name, data=data, message_id=str(uuid.uuid4())
+                stream=stream_name, data=data, message_id=message_id
             )
+
+            if span:
+                span.set_attribute("message_id", message_id)
 
             # Publish to NATS
             if self.nats_client and not self.nats_client.is_closed:
@@ -350,6 +409,8 @@ class BinanceWebSocketClient:
                     )
 
                     self.processed_messages += 1
+                    if span:
+                        span.set_attribute("published", True)
 
                     # Log stats at most once per minute instead of every 100 messages
                     current_time = time.time()
@@ -373,12 +434,18 @@ class BinanceWebSocketClient:
 
                 except Exception as e:
                     self.logger.error(f"Failed to publish to NATS: {e}")
+                    if span:
+                        span.record_exception(e)
             else:
                 self.logger.warning("NATS client not connected, dropping message")
                 self.dropped_messages += 1
+                if span:
+                    span.set_attribute("error", "nats_not_connected")
 
         except Exception as e:
             self.logger.error(f"Error processing single message: {e}")
+            if span:
+                span.record_exception(e)
 
     def _determine_stream_name(self, data: dict) -> Optional[str]:
         """
