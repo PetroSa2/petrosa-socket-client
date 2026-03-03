@@ -12,9 +12,16 @@ import signal
 import sys
 from typing import Any, Optional
 
+from dotenv import load_dotenv
+
+# Load environment variables FIRST so they are available for OTEL setup
+load_dotenv()
+
 # 1. Setup OpenTelemetry FIRST (before any other imports that might use it)
 try:
-    from petrosa_otel import setup_telemetry
+    from petrosa_otel import attach_logging_handler, setup_telemetry
+    # Inverted logic: call setup_telemetry() manually ONLY if auto-init is disabled
+    # via OTEL_NO_AUTO_INIT=1. This avoids conflicts with opentelemetry-instrument auto-init.
     if os.getenv("OTEL_NO_AUTO_INIT"):
         service_name = os.getenv("OTEL_SERVICE_NAME", "socket-client")
         setup_telemetry(
@@ -22,12 +29,14 @@ try:
             service_type="async",
             auto_attach_logging=False,
         )
-except ImportError:
+except (ImportError, Exception) as e:
+    if not isinstance(e, ImportError):
+        print(f"⚠️  OpenTelemetry setup failed: {e}")
     setup_telemetry = None
+    attach_logging_handler = None
 
 import requests
 import typer
-from dotenv import load_dotenv
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,9 +48,6 @@ import constants  # noqa: E402
 from socket_client.core.client import BinanceWebSocketClient  # noqa: E402
 from socket_client.health.server import HealthServer  # noqa: E402
 from socket_client.utils.logger import setup_logging  # noqa: E402
-
-# Load environment variables
-load_dotenv()
 
 app = typer.Typer(help="Petrosa Socket Client - Binance WebSocket client")
 
@@ -150,10 +156,12 @@ def run(
 
     # Create and run service
     service = SocketClientService()
-    try:
-        from petrosa_otel import attach_logging_handler
-        attach_logging_handler()
-    except ImportError:
+    if attach_logging_handler:
+        try:
+            attach_logging_handler()
+        except Exception as e:
+            print(f"⚠️  Failed to attach OTLP logging handler: {e}")
+    else:
         print("⚠️  petrosa_otel not found, skipping OTLP logging handler.")
     signal_handler.service = service  # type: ignore[attr-defined]
 
