@@ -123,8 +123,11 @@ jobs:
       - name: Update socket-client image tag in GitOps manifests
         run: |
           VERSION="${{ needs.build-and-push.outputs.version }}"
-          # Update all VERSION_PLACEHOLDER occurrences (image tags, labels, etc.) in manifests
-          find petrosa_k8s/k8s/socket-client -name "*.yaml" -o -name "*.yml" | xargs sed -i "s/VERSION_PLACEHOLDER/$VERSION/g"
+          # Update all version occurrences (image tags, labels, etc.) in manifests
+          # This handles both VERSION_PLACEHOLDER and existing version tags from previous runs
+          find petrosa_k8s/k8s/socket-client -name "*.yaml" -o -name "*.yml" | xargs sed -i -E "s/(yurisa2\/petrosa-socket-client:)(v[0-9.]+-[^ ]*|VERSION_PLACEHOLDER)/\1$VERSION/g"
+          find petrosa_k8s/k8s/socket-client -name "*.yaml" -o -name "*.yml" | xargs sed -i -E "s/(version: )(v[0-9.]+-[^ ]*|VERSION_PLACEHOLDER)/\1$VERSION/g"
+          find petrosa_k8s/k8s/socket-client -name "*.yaml" -o -name "*.yml" | xargs sed -i -E "s/(service.version=)(v[0-9.]+-[^ ]*|VERSION_PLACEHOLDER)/\1$VERSION/g"
           
           echo "Updated socket-client image tag to $VERSION in petrosa_k8s/k8s/socket-client/"
 
