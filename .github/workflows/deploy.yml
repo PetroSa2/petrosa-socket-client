@@ -150,7 +150,6 @@ jobs:
   notify:
     name: notify
     needs: [build-and-push, gitops-update, create-release]
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: petrosa-org-runners
     if: always() && (github.event.pull_request.head.repo.full_name == github.repository)
     steps:
@@ -175,7 +174,6 @@ jobs:
   cleanup:
     name: cleanup
     needs: [build-and-push]
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: petrosa-org-runners
     if: always() && (github.event.pull_request.head.repo.full_name == github.repository)
     steps:
