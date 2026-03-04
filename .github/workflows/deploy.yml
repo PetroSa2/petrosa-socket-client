@@ -12,6 +12,7 @@ env:
 jobs:
   create-release:
     name: Create Release
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: petrosa-org-runners
     permissions:
       contents: write
@@ -45,6 +46,7 @@ jobs:
   build-and-push:
     name: Build & Push
     needs: create-release
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: petrosa-org-runners
     permissions:
       contents: read
@@ -96,6 +98,7 @@ jobs:
   gitops-update:
     name: GitOps Update
     needs: [build-and-push, create-release]
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: petrosa-org-runners
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
@@ -147,8 +150,9 @@ jobs:
   notify:
     name: notify
     needs: [build-and-push, gitops-update, create-release]
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: petrosa-org-runners
-    if: always()
+    if: always() && (github.event.pull_request.head.repo.full_name == github.repository)
     steps:
     - name: Notify Deployment Status
       run: |
@@ -171,8 +175,9 @@ jobs:
   cleanup:
     name: cleanup
     needs: [build-and-push]
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: petrosa-org-runners
-    if: always()
+    if: always() && (github.event.pull_request.head.repo.full_name == github.repository)
     steps:
     - name: Clean Up Old Images
       run: |
