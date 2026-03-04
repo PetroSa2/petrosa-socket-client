@@ -24,7 +24,7 @@ env:
 jobs:
   version-and-deploy:
     name: Version Bump & Deploy
-    runs-on: ubuntu-latest
+    runs-on: petrosa-org-runners
     permissions:
       contents: write
       packages: write
@@ -155,7 +155,7 @@ jobs:
   notify:
     name: Notify Deployment Status
     needs: version-and-deploy
-    runs-on: ubuntu-latest
+    runs-on: petrosa-org-runners
     if: always()
     permissions:
       contents: none
