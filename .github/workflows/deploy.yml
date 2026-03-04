@@ -2,8 +2,10 @@ name: Deploy
 
 on:
   push:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     branches: [ 'main' ]
   pull_request:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     branches: [ 'main' ]
 
 env:
@@ -11,8 +13,8 @@ env:
 
 jobs:
   create-release:
-    name: Create Release
     if: github.event.pull_request.head.repo.full_name == github.repository
+    name: Create Release
     runs-on: petrosa-org-runners
     permissions:
       contents: write
@@ -44,9 +46,9 @@ jobs:
         git push origin "$VERSION"
 
   build-and-push:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     name: Build & Push
     needs: create-release
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: petrosa-org-runners
     permissions:
       contents: read
@@ -98,7 +100,6 @@ jobs:
   gitops-update:
     name: GitOps Update
     needs: [build-and-push, create-release]
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: petrosa-org-runners
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
