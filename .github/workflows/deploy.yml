@@ -147,17 +147,15 @@ jobs:
     needs: [build-and-push, gitops-update, create-release]
     runs-on: petrosa-org-runners
     if: always()
+    steps:
+    - name: Notify Deployment Status
       run: |
         VERSION="${{ needs.create-release.outputs.version }}"
-        IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
         
         if [ "${{ needs.gitops-update.result }}" == "success" ]; then
           echo "✅ Build, Push, and GitOps Update successful!"
           echo "📦 Version: ${VERSION}"
           echo "🚀 Deployed via petrosa_k8s hub"
-        elif [ "${{ needs.gitops-update.result }}" == "skipped" ] && [ "${{ github.event_name }}" == "pull_request" ]; then
-          echo "ℹ️ Pull Request: Build and Push successful (GitOps update skipped for PR)"
-          echo "📦 Version: ${VERSION}"
         else
           echo "❌ GitOps Update failed (or was unsuccessful)!"
           echo "📦 Version: ${VERSION}"
