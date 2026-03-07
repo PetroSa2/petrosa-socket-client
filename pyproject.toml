@@ -115,7 +115,7 @@ Repository = "https://github.com/petrosa/petrosa-socket-client.git"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["socket_client*"]
-exclude = ["tests*", "docs*", "scripts*"]
+exclude = ["tests*", "docs*", "scripts*", "venv*", ".venv*", "build*", "dist*"]
 
 [tool.setuptools.package-data]
 socket_client = ["py.typed"]
