@@ -26,7 +26,7 @@ structlog>=23.0.0
 # For local development, install from path:
 # pip install -e ../petrosa_k8s/petrosa-otel
 # For production, this will be published to private PyPI
-petrosa-otel>=1.0.0
+petrosa-otel[all]>=1.0.0
 
 # CLI framework
 typer>=0.9.0
