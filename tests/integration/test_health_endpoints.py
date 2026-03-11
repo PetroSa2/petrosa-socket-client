@@ -140,11 +140,11 @@ class TestHealthServerStartStop(AioHTTPTestCase):
     async def test_multiple_health_requests(self):
         """Test handling multiple health check requests."""
         responses = []
-        
+
         for _ in range(10):
             resp = await self.client.request("GET", "/healthz")
             responses.append(resp.status)
-        
+
         # All should succeed
         assert all(status == 200 for status in responses)
 
@@ -155,9 +155,9 @@ class TestHealthServerStartStop(AioHTTPTestCase):
             self.client.request("GET", "/healthz")
             for _ in range(5)
         ]
-        
+
         responses = await asyncio.gather(*tasks)
-        
+
         # All should succeed
         for resp in responses:
             assert resp.status == 200
