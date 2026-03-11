@@ -63,7 +63,7 @@ async def test_heartbeat_loop_defensive_check() -> None:
         pass  # Expected
 
 
-@pytest.mark.asyncio  
+@pytest.mark.asyncio
 async def test_websocket_listener_handles_none_websocket() -> None:
     """Test that _websocket_listener handles None websocket gracefully."""
     client = BinanceWebSocketClient(

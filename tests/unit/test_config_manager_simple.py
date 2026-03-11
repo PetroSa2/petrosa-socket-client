@@ -7,7 +7,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from socket_client.services.config_manager import ConfigManager, get_config_manager, set_config_manager
+from socket_client.services.config_manager import (
+    ConfigManager,
+    get_config_manager,
+    set_config_manager,
+)
 
 
 class TestConfigManagerGlobals:
@@ -16,19 +20,19 @@ class TestConfigManagerGlobals:
     def test_set_and_get_config_manager(self):
         """Test setting and getting config manager."""
         mock_manager = MagicMock(spec=ConfigManager)
-        
+
         set_config_manager(mock_manager)
         retrieved = get_config_manager()
-        
+
         assert retrieved is mock_manager
-        
+
         # Cleanup
         set_config_manager(None)
 
     def test_get_config_manager_none_initially(self):
         """Test config manager is None initially."""
         set_config_manager(None)
-        
+
         result = get_config_manager()
         assert result is not None
 
@@ -44,15 +48,15 @@ class TestConfigManagerInit:
             "CIRCUIT_BREAKER_FAILURE_THRESHOLD": "15",
             "MONGODB_URI": "mongodb://test:27017"
         }
-        
+
         # Create a mock environment
         import os
         original_environ = os.environ.copy()
         os.environ.update(env_vars)
-        
+
         try:
             manager = ConfigManager()
-            
+
             assert manager.get_streams() == ["btcusdt@trade", "ethusdt@ticker"]
             assert manager.mongo_uri == "mongodb://test:27017"
         finally:
@@ -67,7 +71,7 @@ class TestConfigManagerInit:
         original_environ = os.environ.copy()
         for key in ["BINANCE_STREAMS", "WEBSOCKET_RECONNECT_DELAY"]:
             os.environ.pop(key, None)
-        
+
         try:
             manager = ConfigManager()
             # Default should be empty or from base environment if not cleared

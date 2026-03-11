@@ -305,9 +305,9 @@ class TestOpenTelemetryIntegration:
             if "socket_client.main" in sys.modules:
                 del sys.modules["socket_client.main"]
             import socket_client.main  # noqa: F401
-            
+
             mock_setup.assert_called_once()
-        
+
     def test_otel_setup_condition_without_no_auto_init(self, mock_constants):
         """Test that setup_telemetry is NOT called when OTEL_NO_AUTO_INIT is not set."""
         with (
@@ -316,12 +316,12 @@ class TestOpenTelemetryIntegration:
         ):
             if "OTEL_NO_AUTO_INIT" in os.environ:
                 del os.environ["OTEL_NO_AUTO_INIT"]
-                
+
             # Reload module
             if "socket_client.main" in sys.modules:
                 del sys.modules["socket_client.main"]
             import socket_client.main  # noqa: F401
-            
+
             mock_setup.assert_not_called()
 
     def test_otel_import_error_handled(self, mock_constants):

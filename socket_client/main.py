@@ -41,10 +41,11 @@ except ImportError:
     pass
 
 import constants  # noqa: E402
+import structlog  # noqa: E402
+import typer  # noqa: E402
 from socket_client.core.client import BinanceWebSocketClient  # noqa: E402
 from socket_client.health.server import HealthServer  # noqa: E402
 from socket_client.utils.logger import setup_logging  # noqa: E402
-
 app = typer.Typer(help="Petrosa Socket Client - Binance WebSocket client")
 
 
@@ -135,6 +136,14 @@ def run(
 
     # Create service (this initializes logging)
     service = SocketClientService()
+
+    # Attach OTel logging handler LAST (after logging is configured)
+    try:
+        from petrosa_otel import attach_logging_handler  # noqa: E402
+
+        attach_logging_handler()
+    except ImportError:
+        pass
 
     # Start the service
     try:

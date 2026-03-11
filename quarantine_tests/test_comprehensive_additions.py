@@ -28,10 +28,10 @@ class TestMessageProcessing:
         )
 
         valid_msg = '{"stream": "test@stream", "data": {"price": "100"}}'
-        
+
         # Should add to queue
         await client._handle_websocket_message(valid_msg)
-        
+
         # Queue should have message (if not full)
         assert client.message_queue.qsize() >= 0
 
@@ -64,9 +64,9 @@ class TestMessageProcessing:
         client.nats_client = mock_nats
 
         message_data = {"stream": "test@stream", "data": {"price": "100"}}
-        
+
         await client._process_and_publish_message(json.dumps(message_data))
-        
+
         # Should have attempted to publish
         assert client.processed_messages >= 0
 
@@ -83,7 +83,7 @@ class TestMessageProcessing:
         client.nats_client = None
 
         message_data = {"stream": "test@stream", "data": {"price": "100"}}
-        
+
         # Should handle gracefully when NATS not connected
         await client._process_and_publish_message(json.dumps(message_data))
 
@@ -208,7 +208,7 @@ class TestClientAttributes:
 
         original_count = len(client.streams)
         client.streams.append("new@stream")
-        
+
         assert len(client.streams) == original_count + 1
 
     def test_message_queue_size_limit(self):
@@ -248,7 +248,7 @@ class TestClientAttributes:
     def test_last_stats_log_time_initialized(self):
         """Test last_stats_log_time is initialized."""
         import time
-        
+
         before = time.time()
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",

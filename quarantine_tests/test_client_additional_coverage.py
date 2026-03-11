@@ -59,7 +59,7 @@ class TestClientErrorHandling:
 
         # Invalid JSON should be handled gracefully
         await client._process_message("invalid json")
-        
+
         # Should not have published anything
         assert client.nats_client.publish.call_count == 0
 
@@ -79,7 +79,7 @@ class TestClientErrorHandling:
 
         valid_message = '{"stream": "test@stream", "data": {"test": true}}'
         await client._process_message(valid_message)
-        
+
         # Should have attempted to publish
         assert mock_nats.publish.call_count > 0
 
@@ -120,10 +120,10 @@ class TestClientStatistics:
                 break
 
         initial_dropped = client.dropped_messages
-        
+
         # Try to add more - should be dropped
         await client._handle_websocket_message('{"test": "overflow"}')
-        
+
         # Dropped count should increase if queue was full
         # (implementation dependent)
 
@@ -158,7 +158,7 @@ class TestClientConnectionState:
 
         # Should handle stop gracefully even if not running
         await client.stop()
-        
+
         assert client.is_running is False
 
     @pytest.mark.asyncio
@@ -205,7 +205,7 @@ class TestClientConfiguration:
     def test_logger_parameter(self):
         """Test custom logger can be provided."""
         custom_logger = MagicMock()
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],

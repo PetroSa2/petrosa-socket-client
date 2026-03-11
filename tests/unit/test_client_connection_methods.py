@@ -26,10 +26,10 @@ class TestConnectWebSocket:
         )
 
         mock_ws = AsyncMock()
-        
+
         with patch("websockets.connect", return_value=mock_ws):
             await client._connect_websocket()
-            
+
             assert client.websocket is not None
             assert client.is_connected is True
 
@@ -51,7 +51,7 @@ class TestConnectWebSocket:
         ):
             with pytest.raises(CircuitBreakerOpenError, match="Circuit open"):
                 await client._connect_websocket()
-            
+
             assert client.websocket is None
             assert client.is_connected is False
 
@@ -68,7 +68,7 @@ class TestConnectWebSocket:
         with patch("websockets.connect", side_effect=Exception("Connection refused")):
             with pytest.raises(Exception, match="Connection refused"):
                 await client._connect_websocket()
-            
+
             assert client.is_connected is False
 
 
@@ -87,10 +87,10 @@ class TestConnectNATS:
         )
 
         mock_nats = AsyncMock()
-        
+
         with patch("nats.connect", return_value=mock_nats):
             await client._connect_nats()
-            
+
             assert client.nats_client is not None
 
     @pytest.mark.asyncio
@@ -111,7 +111,7 @@ class TestConnectNATS:
         ):
             with pytest.raises(CircuitBreakerOpenError, match="Circuit open"):
                 await client._connect_nats()
-            
+
             assert client.nats_client is None
 
     @pytest.mark.asyncio
@@ -219,11 +219,11 @@ class TestReconnection:
         )
 
         initial_attempts = client.reconnect_attempts
-        
+
         # Mock failed connection
         with patch.object(client, "_connect_websocket", return_value=False):
             client.reconnect_attempts += 1
-            
+
         assert client.reconnect_attempts == initial_attempts + 1
 
     @pytest.mark.asyncio
@@ -239,10 +239,10 @@ class TestReconnection:
 
         # Verify limit is set
         assert client.max_reconnect_attempts == 3
-        
+
         # Simulate hitting limit
         client.reconnect_attempts = 3
-        
+
         assert client.reconnect_attempts >= client.max_reconnect_attempts
 
 
@@ -254,7 +254,7 @@ class TestPingLoop:
     async def test_ping_updates_last_ping_time(self):
         """Test ping updates last_ping timestamp."""
         import time
-        
+
         client = BinanceWebSocketClient(
             ws_url="wss://test.com",
             streams=["test@stream"],
@@ -264,9 +264,9 @@ class TestPingLoop:
 
         initial_time = client.last_ping
         assert initial_time == 0.0
-        
+
         # Update it manually to test the attribute
         client.last_ping = time.time()
-        
+
         assert client.last_ping > initial_time
 
