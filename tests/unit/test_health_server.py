@@ -1,6 +1,7 @@
 """Tests for the health server module."""
 
 import pytest
+
 from socket_client.health.server import HealthServer
 from socket_client.utils.logger import get_logger
 

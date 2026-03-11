@@ -26,11 +26,26 @@ sys.path.insert(0, project_root)
 
 __version__ = "1.1.0"
 
+# Initialize OpenTelemetry as early as possible
+try:
+    from petrosa_otel import setup_telemetry
+
+    if not os.getenv("OTEL_NO_AUTO_INIT"):
+        service_name = os.getenv("OTEL_SERVICE_NAME", "socket-client")
+        setup_telemetry(
+            service_name=service_name,
+            service_type="async",
+            auto_attach_logging=True,
+        )
+except ImportError:
+    pass
+
 import constants  # noqa: E402
+import structlog  # noqa: E402
+import typer  # noqa: E402
 from socket_client.core.client import BinanceWebSocketClient  # noqa: E402
 from socket_client.health.server import HealthServer  # noqa: E402
 from socket_client.utils.logger import setup_logging  # noqa: E402
-
 app = typer.Typer(help="Petrosa Socket Client - Binance WebSocket client")
 
 
@@ -119,31 +134,16 @@ def run(
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    # 1. Setup OpenTelemetry (before initializing the service)
-    try:
-        from petrosa_otel import setup_telemetry
-        if os.getenv("OTEL_NO_AUTO_INIT"):
-            service_name = os.getenv("OTEL_SERVICE_NAME", "socket-client")
-            setup_telemetry(
-                service_name=service_name,
-                service_type="async",
-                auto_attach_logging=False, # We'll attach after logging is configured
-            )
-    except (ImportError, Exception) as e:
-        if not isinstance(e, ImportError):
-            print(f"⚠️  OpenTelemetry setup failed: {e}")
-
-    # 2. Create service (this initializes logging)
+    # Create service (this initializes logging)
     service = SocketClientService()
-    signal_handler.service = service  # type: ignore[attr-defined]
 
-    # 3. Attach OTel logging handler LAST (after logging is configured)
+    # Attach OTel logging handler LAST (after logging is configured)
     try:
-        from petrosa_otel import attach_logging_handler
+        from petrosa_otel import attach_logging_handler  # noqa: E402
+
         attach_logging_handler()
-    except (ImportError, Exception) as e:
-        if not isinstance(e, ImportError):
-            print(f"⚠️  Failed to attach OTLP logging handler: {e}")
+    except ImportError:
+        pass
 
     # Start the service
     try:

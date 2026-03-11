@@ -4,12 +4,17 @@ Tests for the configuration API routes.
 Tests the FastAPI configuration endpoints for streams, reconnection, and circuit breaker.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
 
 from socket_client.api.main import create_app
-from socket_client.services.config_manager import ConfigManager, get_config_manager, set_config_manager
+from socket_client.services.config_manager import (
+    ConfigManager,
+    get_config_manager,
+    set_config_manager,
+)
 
 
 @pytest.fixture
@@ -35,11 +40,11 @@ def client(mock_config_manager):
     """Create test client with mocked config manager."""
     # Set the mock config manager
     set_config_manager(mock_config_manager)
-    
+
     app = create_app()
     client_instance = TestClient(app)
     yield client_instance
-    
+
     # Cleanup: reset config manager
     set_config_manager(None)
 

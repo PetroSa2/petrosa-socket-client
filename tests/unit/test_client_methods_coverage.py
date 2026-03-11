@@ -653,17 +653,17 @@ class TestClientStopMethod:
         # Create mock tasks
         async def mock_coro():
             pass
-            
+
         mock_ping = MagicMock()
         mock_ping.done.return_value = False
         mock_ping.cancel = MagicMock()
         mock_ping.__await__ = mock_coro().__await__
-        
+
         mock_heartbeat = MagicMock()
         mock_heartbeat.done.return_value = False
         mock_heartbeat.cancel = MagicMock()
         mock_heartbeat.__await__ = mock_coro().__await__
-        
+
         mock_processor = MagicMock()
         mock_processor.done.return_value = False
         mock_processor.cancel = MagicMock()
