@@ -17,14 +17,16 @@ BINANCE_FUTURES_WS_URL = os.getenv(
     "BINANCE_FUTURES_WS_URL", "wss://fstream.binance.com"
 )
 
-# Default streams to subscribe to
+# Default streams to subscribe to (including kline_1h for regime classification)
 DEFAULT_STREAMS = [
     "btcusdt@trade",
     "btcusdt@ticker",
     "btcusdt@depth20@100ms",
+    "btcusdt@kline_1h",
     "ethusdt@trade",
     "ethusdt@ticker",
     "ethusdt@depth20@100ms",
+    "ethusdt@kline_1h",
 ]
 
 
