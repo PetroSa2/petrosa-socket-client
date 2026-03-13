@@ -26,19 +26,8 @@ sys.path.insert(0, project_root)
 
 __version__ = "1.1.0"
 
-# Initialize OpenTelemetry as early as possible
-try:
-    from petrosa_otel import setup_telemetry
-
-    if not os.getenv("OTEL_NO_AUTO_INIT"):
-        service_name = os.getenv("OTEL_SERVICE_NAME", "socket-client")
-        setup_telemetry(
-            service_name=service_name,
-            service_type="async",
-            auto_attach_logging=True,
-        )
-except ImportError:
-    pass
+# Note: OpenTelemetry is initialized inside the run() function to ensure
+# it happens after logging configuration.
 
 import constants  # noqa: E402
 import structlog  # noqa: E402
@@ -137,10 +126,19 @@ def run(
     # Create service (this initializes logging)
     service = SocketClientService()
 
-    # Attach OTel logging handler LAST (after logging is configured)
+    # Attach OTel logging and initialize telemetry
     try:
-        from petrosa_otel import attach_logging_handler  # noqa: E402
+        from petrosa_otel import setup_telemetry, attach_logging_handler
 
+        # 1. Setup telemetry
+        service_name = os.getenv("OTEL_SERVICE_NAME", "socket-client")
+        setup_telemetry(
+            service_name=service_name,
+            service_type="async",
+            auto_attach_logging=False,
+        )
+
+        # 2. Attach logging handler (after setup_logging call in SocketClientService)
         attach_logging_handler()
     except ImportError:
         pass
