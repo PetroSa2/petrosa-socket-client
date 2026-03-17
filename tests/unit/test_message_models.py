@@ -418,11 +418,15 @@ class TestTraceContextFallback:
             return message
 
         # Patch both the flag and the function (use create=True for conditional import)
-        with mock.patch.object(
-            message_module, "TRACE_PROPAGATION_AVAILABLE", True
-        ), mock.patch.object(
-            message_module, "inject_trace_context", side_effect=mock_inject, create=True
-        ) as mock_inject_fn:
+        with (
+            mock.patch.object(message_module, "TRACE_PROPAGATION_AVAILABLE", True),
+            mock.patch.object(
+                message_module,
+                "inject_trace_context",
+                side_effect=mock_inject,
+                create=True,
+            ) as mock_inject_fn,
+        ):
             message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
             nats_message = message.to_nats_message()
 
@@ -452,10 +456,14 @@ class TestTraceContextFallback:
             return message
 
         # Patch both the flag and the function (use create=True for conditional import)
-        with mock.patch.object(
-            message_module, "TRACE_PROPAGATION_AVAILABLE", True
-        ), mock.patch.object(
-            message_module, "inject_trace_context", side_effect=mock_inject, create=True
+        with (
+            mock.patch.object(message_module, "TRACE_PROPAGATION_AVAILABLE", True),
+            mock.patch.object(
+                message_module,
+                "inject_trace_context",
+                side_effect=mock_inject,
+                create=True,
+            ),
         ):
             message = WebSocketMessage(stream="btcusdt@trade", data={"price": "50000"})
             json_str = message.to_json()

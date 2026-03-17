@@ -29,12 +29,14 @@ __version__ = "1.1.0"
 # Note: OpenTelemetry is initialized inside the run() function to ensure
 # it happens after logging configuration.
 
-import constants  # noqa: E402
 import structlog  # noqa: E402
 import typer  # noqa: E402
+
+import constants  # noqa: E402
 from socket_client.core.client import BinanceWebSocketClient  # noqa: E402
 from socket_client.health.server import HealthServer  # noqa: E402
 from socket_client.utils.logger import setup_logging  # noqa: E402
+
 app = typer.Typer(help="Petrosa Socket Client - Binance WebSocket client")
 
 
@@ -106,7 +108,9 @@ def signal_handler(signum, frame):
 
 @app.command()
 def run(
-    ws_url: Optional[str] = typer.Option(None, "--ws-url", help="Binance WebSocket URL"),
+    ws_url: Optional[str] = typer.Option(
+        None, "--ws-url", help="Binance WebSocket URL"
+    ),
     nats_url: Optional[str] = typer.Option(None, "--nats-url", help="NATS server URL"),
     nats_topic: Optional[str] = typer.Option(None, "--nats-topic", help="NATS topic"),
 ):
@@ -128,7 +132,7 @@ def run(
 
     # Attach OTel logging and initialize telemetry
     try:
-        from petrosa_otel import setup_telemetry, attach_logging_handler
+        from petrosa_otel import attach_logging_handler, setup_telemetry
 
         # 1. Setup telemetry
         service_name = os.getenv("OTEL_SERVICE_NAME", "socket-client")

@@ -310,9 +310,10 @@ class TestConnectionPerformance:
     @pytest.mark.asyncio
     async def test_connection_establishment_time(self) -> None:
         """Test WebSocket connection establishment performance."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -342,9 +343,10 @@ class TestConnectionPerformance:
         """Test reconnection performance after failures."""
         connection_times = []
 
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -378,9 +380,10 @@ class TestConnectionPerformance:
     @pytest.mark.asyncio
     async def test_concurrent_connections(self) -> None:
         """Test performance with multiple concurrent connections."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket

@@ -105,9 +105,10 @@ class TestWebSocketConnection:
     @pytest.mark.asyncio
     async def test_successful_connection(self) -> None:
         """Test successful WebSocket connection."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -152,9 +153,10 @@ class TestWebSocketConnection:
     @pytest.mark.asyncio
     async def test_connection_failure_nats(self) -> None:
         """Test NATS connection failure."""
-        with patch("websockets.connect") as mock_ws_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_ws_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_ws_connect.return_value.__aenter__.return_value = mock_websocket
             mock_nats_connect.side_effect = Exception("NATS connection failed")
@@ -211,9 +213,10 @@ class TestWebSocketConnection:
     @pytest.mark.asyncio
     async def test_connection_with_stream_subscription(self) -> None:
         """Test connection with stream subscription."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -424,9 +427,10 @@ class TestReconnectionLogic:
     @pytest.mark.asyncio
     async def test_reconnection_after_connection_loss(self) -> None:
         """Test automatic reconnection after connection loss."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             # First connection succeeds
             mock_websocket1 = AsyncMock()
             mock_websocket1.closed = False
@@ -470,8 +474,9 @@ class TestReconnectionLogic:
     @pytest.mark.asyncio
     async def test_reconnection_failure_exhausts_attempts(self) -> None:
         """Test reconnection failure after exhausting attempts."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "asyncio.sleep"
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("asyncio.sleep"),
         ):  # Mock sleep to speed up test
             mock_connect.side_effect = Exception("Connection failed")
 
@@ -493,9 +498,10 @@ class TestReconnectionLogic:
     @pytest.mark.asyncio
     async def test_exponential_backoff_reconnection_delay(self) -> None:
         """Test exponential backoff for reconnection delays."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "asyncio.sleep"
-        ) as mock_sleep:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("asyncio.sleep") as mock_sleep,
+        ):
             mock_connect.side_effect = [
                 Exception("First attempt"),
                 Exception("Second attempt"),
@@ -522,9 +528,10 @@ class TestReconnectionLogic:
     @pytest.mark.asyncio
     async def test_reconnection_preserves_subscription(self) -> None:
         """Test that reconnection preserves stream subscriptions."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -558,9 +565,10 @@ class TestClientLifecycle:
     @pytest.mark.asyncio
     async def test_start_client(self) -> None:
         """Test starting the WebSocket client."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -617,9 +625,10 @@ class TestClientLifecycle:
     @pytest.mark.asyncio
     async def test_context_manager_protocol(self) -> None:
         """Test client as async context manager."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket
@@ -642,9 +651,10 @@ class TestClientLifecycle:
     @pytest.mark.asyncio
     async def test_multiple_start_calls(self) -> None:
         """Test that multiple start calls are handled gracefully."""
-        with patch("websockets.connect") as mock_connect, patch(
-            "nats.connect"
-        ) as mock_nats_connect:
+        with (
+            patch("websockets.connect") as mock_connect,
+            patch("nats.connect") as mock_nats_connect,
+        ):
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_connect.return_value.__aenter__.return_value = mock_websocket

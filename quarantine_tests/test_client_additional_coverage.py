@@ -215,4 +215,3 @@ class TestClientConfiguration:
         )
 
         assert client.logger is custom_logger
-

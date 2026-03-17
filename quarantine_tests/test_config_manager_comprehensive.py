@@ -36,7 +36,10 @@ class TestConfigManager:
         """Create ConfigManager instance with mocked MongoDB."""
         mock_client, mock_collection = mock_mongo_client
 
-        with patch("socket_client.services.config_manager.MongoClient", return_value=mock_client):
+        with patch(
+            "socket_client.services.config_manager.MongoClient",
+            return_value=mock_client,
+        ):
             with patch.dict(
                 os.environ,
                 {
@@ -53,7 +56,10 @@ class TestConfigManager:
         """Test ConfigManager initialization with environment variables."""
         mock_client, _ = mock_mongo_client
 
-        with patch("socket_client.services.config_manager.MongoClient", return_value=mock_client):
+        with patch(
+            "socket_client.services.config_manager.MongoClient",
+            return_value=mock_client,
+        ):
             with patch.dict(
                 os.environ,
                 {
@@ -72,7 +78,10 @@ class TestConfigManager:
         """Test ConfigManager initialization with default values."""
         mock_client, _ = mock_mongo_client
 
-        with patch("socket_client.services.config_manager.MongoClient", return_value=mock_client):
+        with patch(
+            "socket_client.services.config_manager.MongoClient",
+            return_value=mock_client,
+        ):
             with patch.dict(os.environ, {}, clear=True):
                 manager = ConfigManager()
 
@@ -334,4 +343,3 @@ class TestConfigManager:
 
         loaded_config = config_manager.load_config()
         assert loaded_config == mixed_types_config
-

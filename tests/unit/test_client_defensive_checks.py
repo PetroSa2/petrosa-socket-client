@@ -129,4 +129,3 @@ async def test_last_ping_float_type() -> None:
     # Verify initial value is float
     assert isinstance(client.last_ping, float)
     assert client.last_ping == 0.0
-

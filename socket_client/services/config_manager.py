@@ -20,13 +20,27 @@ class ConfigManager:
     def __init__(self):
         """Initialize configuration manager."""
         # Load from environment variables (defaults)
-        self._streams = os.getenv("BINANCE_STREAMS", "").split(",") if os.getenv("BINANCE_STREAMS") else []
+        self._streams = (
+            os.getenv("BINANCE_STREAMS", "").split(",")
+            if os.getenv("BINANCE_STREAMS")
+            else []
+        )
         self._reconnect_delay = int(os.getenv("WEBSOCKET_RECONNECT_DELAY", "5"))
-        self._max_reconnect_attempts = int(os.getenv("WEBSOCKET_MAX_RECONNECT_ATTEMPTS", "10"))
-        self._backoff_multiplier = float(os.getenv("WEBSOCKET_BACKOFF_MULTIPLIER", "2.0"))
-        self._failure_threshold = int(os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", "5"))
-        self._recovery_timeout = int(os.getenv("CIRCUIT_BREAKER_RECOVERY_TIMEOUT", "60"))
-        self._half_open_max_calls = int(os.getenv("CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS", "3"))
+        self._max_reconnect_attempts = int(
+            os.getenv("WEBSOCKET_MAX_RECONNECT_ATTEMPTS", "10")
+        )
+        self._backoff_multiplier = float(
+            os.getenv("WEBSOCKET_BACKOFF_MULTIPLIER", "2.0")
+        )
+        self._failure_threshold = int(
+            os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", "5")
+        )
+        self._recovery_timeout = int(
+            os.getenv("CIRCUIT_BREAKER_RECOVERY_TIMEOUT", "60")
+        )
+        self._half_open_max_calls = int(
+            os.getenv("CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS", "3")
+        )
 
         # MongoDB configuration (for backward compatibility with tests)
         self.mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
@@ -37,25 +51,33 @@ class ConfigManager:
         """Get current stream subscriptions."""
         return self._streams.copy()
 
-    def set_streams(self, streams: list[str], changed_by: str, reason: Optional[str] = None) -> None:
+    def set_streams(
+        self, streams: list[str], changed_by: str, reason: Optional[str] = None
+    ) -> None:
         """Set stream subscriptions."""
         self._streams = streams
         logger.info(f"Streams updated by {changed_by}: {streams} (reason: {reason})")
         # TODO: Persist to MongoDB and update WebSocket client
 
-    def add_stream(self, stream: str, changed_by: str, reason: Optional[str] = None) -> None:
+    def add_stream(
+        self, stream: str, changed_by: str, reason: Optional[str] = None
+    ) -> None:
         """Add a single stream subscription."""
         if stream not in self._streams:
             self._streams.append(stream)
             logger.info(f"Stream added by {changed_by}: {stream} (reason: {reason})")
 
-    def remove_stream(self, stream: str, changed_by: str, reason: Optional[str] = None) -> None:
+    def remove_stream(
+        self, stream: str, changed_by: str, reason: Optional[str] = None
+    ) -> None:
         """Remove a single stream subscription."""
         if stream in self._streams:
             self._streams.remove(stream)
             logger.info(f"Stream removed by {changed_by}: {stream} (reason: {reason})")
 
-    def update_streams(self, streams: list[str], changed_by: str, reason: Optional[str] = None) -> None:
+    def update_streams(
+        self, streams: list[str], changed_by: str, reason: Optional[str] = None
+    ) -> None:
         """Update multiple stream subscriptions (alias for set_streams)."""
         self.set_streams(streams, changed_by, reason)
 
@@ -102,7 +124,9 @@ class ConfigManager:
         self._failure_threshold = failure_threshold
         self._recovery_timeout = recovery_timeout
         self._half_open_max_calls = half_open_max_calls
-        logger.info(f"Circuit breaker config updated by {changed_by} (reason: {reason})")
+        logger.info(
+            f"Circuit breaker config updated by {changed_by} (reason: {reason})"
+        )
         # TODO: Persist to MongoDB and update circuit breaker
 
 
@@ -118,4 +142,3 @@ def set_config_manager(manager: ConfigManager) -> None:
     """Set the global config manager instance (for testing)."""
     global _config_manager
     _config_manager = manager
-

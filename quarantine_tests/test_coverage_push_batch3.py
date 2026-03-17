@@ -43,7 +43,7 @@ class TestClientStartMethodPaths:
 
             try:
                 await asyncio.wait_for(start_task, timeout=1.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 start_task.cancel()
 
     @pytest.mark.asyncio

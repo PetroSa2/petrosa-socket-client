@@ -16,18 +16,24 @@ from pydantic import BaseModel, Field
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("heartbeat")
 
 
 class HeartbeatMessage(BaseModel):
     """Standardized heartbeat message model."""
+
     service: str = "socket-client"
     timestamp: float = Field(default_factory=time.time)
     version: str = os.getenv("VERSION", "1.0.0")
     status: str = "healthy"
+
+    def to_json(self) -> str:
+        """Compatibility helper for Pydantic v1/v2."""
+        if hasattr(self, "model_dump_json"):
+            return self.model_dump_json()
+        return self.json()
 
 
 class HeartbeatPublisher:
@@ -51,16 +57,13 @@ class HeartbeatPublisher:
                     self.nats_client = await nats.connect(self.nats_url)
 
                 message = HeartbeatMessage()
-                await self.nats_client.publish(
-                    self.subject, 
-                    message.model_dump_json().encode()
-                )
+                await self.nats_client.publish(self.subject, message.to_json().encode())
                 logger.debug(f"Published heartbeat to {self.subject}")
-                
+
             except Exception as e:
                 logger.error(f"Error publishing heartbeat: {e}")
                 self.nats_client = None
-            
+
             await asyncio.sleep(self.interval)
 
     def stop(self):
@@ -70,8 +73,8 @@ class HeartbeatPublisher:
 
 async def main():
     nats_url = os.getenv("NATS_URL", "nats://localhost:4222")
-    
-    logger.info(f"🚀 Starting heartbeat service for socket-client")
+
+    logger.info("🚀 Starting heartbeat service for socket-client")
     publisher = HeartbeatPublisher(nats_url)
     await publisher.start()
 
