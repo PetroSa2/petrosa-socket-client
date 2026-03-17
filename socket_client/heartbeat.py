@@ -16,14 +16,14 @@ from pydantic import BaseModel, Field
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("heartbeat")
 
 
 class HeartbeatMessage(BaseModel):
     """Standardized heartbeat message model."""
-
     service: str = "socket-client"
     timestamp: float = Field(default_factory=time.time)
     version: str = os.getenv("VERSION", "1.0.0")
@@ -39,10 +39,10 @@ class HeartbeatMessage(BaseModel):
 class HeartbeatPublisher:
     """Publishes periodic heartbeats to NATS."""
 
-    def __init__(self, nats_url: str):
+    def __init__(self, nats_url: str, subject: Optional[str] = None):
         self.service_name = "socket-client"
         self.nats_url = nats_url
-        self.subject = f"heartbeat.{self.service_name}"
+        self.subject = subject or os.getenv("NATS_TOPIC_HEARTBEAT") or f"heartbeat.{self.service_name}"
         self.interval = 30.0  # seconds
         self.nats_client: Optional[nats.aio.client.Client] = None
         self.is_running = False
@@ -73,9 +73,10 @@ class HeartbeatPublisher:
 
 async def main():
     nats_url = os.getenv("NATS_URL", "nats://localhost:4222")
+    subject = os.getenv("NATS_TOPIC_HEARTBEAT")
 
-    logger.info("🚀 Starting heartbeat service for socket-client")
-    publisher = HeartbeatPublisher(nats_url)
+    logger.info(f"🚀 Starting heartbeat service for socket-client on {subject or 'heartbeat.socket-client'}")
+    publisher = HeartbeatPublisher(nats_url, subject)
     await publisher.start()
 
 
