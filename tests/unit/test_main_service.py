@@ -273,7 +273,11 @@ class TestCLICommands:
     def test_health_command_service_down(self, mock_modules, cli_runner):
         """Test health command when service is down."""
         import requests
-        with patch("requests.get", side_effect=requests.exceptions.RequestException("Connection refused")):
+
+        with patch(
+            "requests.get",
+            side_effect=requests.exceptions.RequestException("Connection refused"),
+        ):
             from socket_client.main import app
 
             result = cli_runner.invoke(app, ["health"])
@@ -334,6 +338,7 @@ class TestOpenTelemetryIntegration:
             if "socket_client.main" in sys.modules:
                 del sys.modules["socket_client.main"]
             import socket_client.main  # noqa: F401
+
             assert "socket_client.main" in sys.modules
 
     def test_otel_logging_handler_failure(self, service):

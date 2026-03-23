@@ -126,4 +126,3 @@ class TestHealthServerConfiguration:
         assert server.app is not None
         # Check routes are configured
         assert len(server.app.router.routes()) > 0
-

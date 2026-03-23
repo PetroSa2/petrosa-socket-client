@@ -107,7 +107,9 @@ class TestStreamsEndpoints:
         assert data["success"] is False
         assert "VALIDATION_ERROR" in data["error"]["code"]
 
-    def test_update_streams_invalid_format_validate_only(self, client, mock_config_manager):
+    def test_update_streams_invalid_format_validate_only(
+        self, client, mock_config_manager
+    ):
         """Test POST /api/v1/config/streams with invalid format and validate_only=true."""
         request_data = {
             "streams": ["INVALID_STREAM"],
@@ -350,4 +352,3 @@ class TestRootEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ready"
-

@@ -269,4 +269,3 @@ class TestPingLoop:
         client.last_ping = time.time()
 
         assert client.last_ping > initial_time
-

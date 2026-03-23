@@ -151,14 +151,10 @@ class TestHealthServerStartStop(AioHTTPTestCase):
     @unittest_run_loop
     async def test_concurrent_health_requests(self):
         """Test concurrent health check requests."""
-        tasks = [
-            self.client.request("GET", "/healthz")
-            for _ in range(5)
-        ]
+        tasks = [self.client.request("GET", "/healthz") for _ in range(5)]
 
         responses = await asyncio.gather(*tasks)
 
         # All should succeed
         for resp in responses:
             assert resp.status == 200
-

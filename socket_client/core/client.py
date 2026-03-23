@@ -28,6 +28,7 @@ logger = get_logger(__name__)
 # OpenTelemetry tracing
 try:
     from petrosa_otel import get_tracer
+
     tracer = get_tracer(__name__)
 except ImportError:
     tracer = None
@@ -336,7 +337,7 @@ class BinanceWebSocketClient:
                         self.message_queue.get(),
                         timeout=constants.MESSAGE_BATCH_TIMEOUT,
                     )
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     continue
 
                 # Process message

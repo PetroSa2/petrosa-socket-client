@@ -83,5 +83,3 @@ def test_logger_mixin_with_kwargs() -> None:
     assert obj.custom_arg == "custom"
     assert obj.logger is not None
     obj.log_info("test")
-
-

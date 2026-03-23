@@ -520,4 +520,3 @@ async def validate_config(request: ConfigValidationRequest):
             success=False,
             error={"code": "INTERNAL_ERROR", "message": str(e)},
         )
-

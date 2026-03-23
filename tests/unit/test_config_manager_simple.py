@@ -46,11 +46,12 @@ class TestConfigManagerInit:
             "BINANCE_STREAMS": "btcusdt@trade,ethusdt@ticker",
             "WEBSOCKET_RECONNECT_DELAY": "10",
             "CIRCUIT_BREAKER_FAILURE_THRESHOLD": "15",
-            "MONGODB_URI": "mongodb://test:27017"
+            "MONGODB_URI": "mongodb://test:27017",
         }
 
         # Create a mock environment
         import os
+
         original_environ = os.environ.copy()
         os.environ.update(env_vars)
 
@@ -68,6 +69,7 @@ class TestConfigManagerInit:
         """Test initialization with default values."""
         # Ensure env vars are clear for this test
         import os
+
         original_environ = os.environ.copy()
         for key in ["BINANCE_STREAMS", "WEBSOCKET_RECONNECT_DELAY"]:
             os.environ.pop(key, None)

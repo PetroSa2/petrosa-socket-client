@@ -301,4 +301,3 @@ class TestURLConstruction:
         )
 
         assert client.nats_topic == topic
-

@@ -26,8 +26,12 @@ class StreamsInfo(BaseModel):
 class ReconnectionInfo(BaseModel):
     """Reconnection configuration information."""
 
-    reconnect_delay: int = Field(..., description="Initial reconnection delay (seconds)")
-    max_reconnect_attempts: int = Field(..., description="Maximum reconnection attempts")
+    reconnect_delay: int = Field(
+        ..., description="Initial reconnection delay (seconds)"
+    )
+    max_reconnect_attempts: int = Field(
+        ..., description="Maximum reconnection attempts"
+    )
     backoff_multiplier: float = Field(..., description="Exponential backoff multiplier")
 
 
@@ -84,4 +88,3 @@ class ValidationResponse(BaseModel):
     conflicts: list[CrossServiceConflict] = Field(
         default_factory=list, description="Cross-service configuration conflicts"
     )
-

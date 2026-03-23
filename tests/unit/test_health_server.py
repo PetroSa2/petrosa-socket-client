@@ -49,5 +49,3 @@ def test_health_server_init_with_all_params() -> None:
     assert server.port == 8888
     assert server.logger is custom_logger
     assert hasattr(server, "start_time")
-
-
