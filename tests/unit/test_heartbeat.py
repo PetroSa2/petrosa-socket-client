@@ -58,6 +58,20 @@ class TestHeartbeat:
             assert args[0] == "test.heartbeat"
 
     @pytest.mark.asyncio
+    async def test_main_entry_point(self):
+        """Test the main entry point function."""
+        with patch("socket_client.heartbeat.HeartbeatPublisher") as mock_publisher_class:
+            mock_publisher = MagicMock()
+            mock_publisher.start = AsyncMock()
+            mock_publisher_class.return_value = mock_publisher
+            
+            from socket_client.heartbeat import main
+            await main()
+            
+            mock_publisher_class.assert_called_once()
+            mock_publisher.start.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_publisher_error_handling(self):
         """Test publisher robustness on connection failure."""
         publisher = HeartbeatPublisher(nats_url="nats://localhost:4222")
