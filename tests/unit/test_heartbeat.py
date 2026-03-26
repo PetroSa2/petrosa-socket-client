@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 from pydantic import Field
@@ -33,11 +33,19 @@ class TestHeartbeat:
         
         with patch("nats.connect", new_callable=AsyncMock) as mock_connect:
             mock_nats = AsyncMock()
+            # Mock the is_connected property (NATS client property)
+            p = PropertyMock(return_value=False)
+            type(mock_nats).is_connected = p
             mock_connect.return_value = mock_nats
             
             # Run the publisher for a short while
             task = asyncio.create_task(publisher.start())
-            await asyncio.sleep(0.25)  # Should publish at least twice
+            await asyncio.sleep(0.1)  # First iteration (starts connection)
+            
+            # Toggle is_connected to True for subsequent iterations
+            p.return_value = True
+            
+            await asyncio.sleep(0.2)  # Should publish more heartbeats
             publisher.stop()
             await task
             
