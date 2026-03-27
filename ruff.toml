@@ -52,8 +52,10 @@ exclude = [
 # Per-file ignores
 [lint.per-file-ignores]
 "__init__.py" = ["F401"]           # Unused imports OK in __init__
-"tests/**/*" = ["B011", "B017"]    # Test-specific ignores
+"tests/**/*" = ["B011", "B017", "E402"]    # Test-specific ignores
+"quarantine_tests/**/*" = ["B011", "B017", "E402"] # Quarantine test-specific ignores
 "scripts/**/*" = ["E402"]          # Module level imports in scripts
+"socket_client/main.py" = ["E402"] # Module level imports in main
 
 # Import sorting configuration (replaces isort)
 [lint.isort]
