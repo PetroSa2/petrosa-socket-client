@@ -104,7 +104,7 @@ class TestAssertionChecker(ast.NodeVisitor):
         return False
 
 
-def find_test_files(paths: list[str] = None) -> list[str]:
+def find_test_files(paths: list[str] | None = None) -> list[str]:
     """Find test files to check."""
     if paths:
         # Use provided paths

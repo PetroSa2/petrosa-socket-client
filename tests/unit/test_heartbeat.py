@@ -19,7 +19,7 @@ class TestHeartbeat:
         assert msg.service == "socket-client"
         assert msg.status == "healthy"
         assert isinstance(msg.timestamp, float)
-        
+
         # Test serialization compatibility
         data = json.loads(msg.to_json())
         assert data["service"] == "socket-client"
@@ -30,29 +30,29 @@ class TestHeartbeat:
         """Test HeartbeatPublisher connects and publishes periodically."""
         publisher = HeartbeatPublisher(nats_url="nats://localhost:4222", subject="test.heartbeat")
         publisher.interval = 0.1  # Fast loop
-        
+
         with patch("nats.connect", new_callable=AsyncMock) as mock_connect:
             mock_nats = AsyncMock()
             # Mock the is_connected property (NATS client property)
             p = PropertyMock(return_value=False)
             type(mock_nats).is_connected = p
             mock_connect.return_value = mock_nats
-            
+
             # Run the publisher for a short while
             task = asyncio.create_task(publisher.start())
             await asyncio.sleep(0.1)  # First iteration (starts connection)
-            
+
             # Toggle is_connected to True for subsequent iterations
             p.return_value = True
-            
+
             await asyncio.sleep(0.2)  # Should publish more heartbeats
             publisher.stop()
             await task
-            
+
             # Assertions
             mock_connect.assert_called()
             assert mock_nats.publish.call_count >= 2
-            
+
             # Check subject used
             args, _ = mock_nats.publish.call_args
             assert args[0] == "test.heartbeat"
@@ -64,10 +64,10 @@ class TestHeartbeat:
             mock_publisher = MagicMock()
             mock_publisher.start = AsyncMock()
             mock_publisher_class.return_value = mock_publisher
-            
+
             from socket_client.heartbeat import main
             await main()
-            
+
             mock_publisher_class.assert_called_once()
             mock_publisher.start.assert_called_once()
 
@@ -76,7 +76,7 @@ class TestHeartbeat:
         """Test publisher robustness on connection failure."""
         publisher = HeartbeatPublisher(nats_url="nats://localhost:4222")
         publisher.interval = 0.1
-        
+
         with patch("nats.connect", side_effect=Exception("Connection failed")):
             # Should not crash the whole process, just log error and retry
             task = asyncio.create_task(publisher.start())
@@ -91,12 +91,12 @@ class TestHeartbeat:
         # 1. Param override
         pub1 = HeartbeatPublisher(nats_url="url", subject="param.subject")
         assert pub1.subject == "param.subject"
-        
+
         # 2. Env override
         with patch.dict(os.environ, {"NATS_TOPIC_HEARTBEAT": "env.subject"}):
             pub2 = HeartbeatPublisher(nats_url="url")
             assert pub2.subject == "env.subject"
-            
+
         # 3. Default
         pub3 = HeartbeatPublisher(nats_url="url")
         assert pub3.subject == "heartbeat.socket-client"
