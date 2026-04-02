@@ -30,6 +30,7 @@ NAMESPACE := petrosa-apps
 .PHONY: pipeline
 
 .PHONY: pipeline validate-python
+.PHONY: test-coverage test-quality
 
 # Default target
 .DEFAULT_GOAL := help

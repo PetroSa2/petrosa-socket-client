@@ -2,10 +2,8 @@ name: CI Checks
 
 on:
   pull_request:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     branches: [main, develop]
   push:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     branches: [main, develop]
 
 jobs:
@@ -151,3 +149,5 @@ jobs:
           [[ "${{ needs.lint.result }}" == "success" ]]
           [[ "${{ needs.test.result }}" == "success" ]]
           [[ "${{ needs.security.result }}" != "failure" ]]
+          [[ "${{ needs.test-quality.result }}" == "success" ]]
+          [[ "${{ needs.documentation-standards.result }}" == "success" ]]
