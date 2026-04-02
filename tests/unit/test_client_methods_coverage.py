@@ -650,17 +650,30 @@ class TestClientStopMethod:
             nats_topic="test.topic",
         )
 
-        mock_ping = AsyncMock()
-        mock_ping.done.return_value = False
-        mock_ping.cancel = MagicMock()
+        class CancellableTask:
+            """Minimal awaitable that tracks cancel calls."""
 
-        mock_heartbeat = AsyncMock()
-        mock_heartbeat.done.return_value = False
-        mock_heartbeat.cancel = MagicMock()
+            def __init__(self):
+                self.cancel_count = 0
 
-        mock_processor = AsyncMock()
-        mock_processor.done.return_value = False
-        mock_processor.cancel = MagicMock()
+            def done(self):
+                return False
+
+            def cancel(self, msg=None):
+                self.cancel_count += 1
+
+            def __bool__(self):
+                return True
+
+            def __await__(self):
+                async def _raise():
+                    raise asyncio.CancelledError()
+
+                return _raise().__await__()
+
+        mock_ping = CancellableTask()
+        mock_heartbeat = CancellableTask()
+        mock_processor = CancellableTask()
 
         client.ping_task = mock_ping
         client.heartbeat_task = mock_heartbeat
@@ -668,6 +681,6 @@ class TestClientStopMethod:
 
         await client.stop()
 
-        mock_ping.cancel.assert_called_once()
-        mock_heartbeat.cancel.assert_called_once()
-        mock_processor.cancel.assert_called_once()
+        assert mock_ping.cancel_count == 1
+        assert mock_heartbeat.cancel_count == 1
+        assert mock_processor.cancel_count == 1

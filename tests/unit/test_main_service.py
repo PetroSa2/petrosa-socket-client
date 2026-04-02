@@ -289,15 +289,20 @@ class TestCLICommands:
 class TestOpenTelemetryIntegration:
     """Test OpenTelemetry integration."""
 
-    @pytest.mark.skip(reason="OTel setup happens inside run(), not at module import time")
-    def test_otel_setup_condition_with_no_auto_init(self, mock_constants):
-        """Test that setup_telemetry is called when OTEL_NO_AUTO_INIT is set."""
-        pass
+    def test_otel_setup_condition_with_no_auto_init(self, mock_modules):
+        """Test that setup_telemetry is NOT a module-level attribute (lives inside run())."""
+        import socket_client.main as main_module
 
-    @pytest.mark.skip(reason="OTel setup happens inside run(), not at module import time")
-    def test_otel_setup_condition_without_no_auto_init(self, mock_constants):
-        """Test that setup_telemetry is NOT called when OTEL_NO_AUTO_INIT is not set."""
-        pass
+        # OTel setup happens inside run(), not at module import time
+        assert not hasattr(main_module, "setup_telemetry")
+
+    def test_otel_setup_condition_without_no_auto_init(self, mock_modules):
+        """Test that module imports successfully and app/run are accessible."""
+        import socket_client.main as main_module
+
+        # Module should always be importable and expose app/run
+        assert hasattr(main_module, "app")
+        assert hasattr(main_module, "run")
 
     def test_otel_import_error_handled(self, mock_constants):
         """Test that import error for petrosa_otel is handled."""
