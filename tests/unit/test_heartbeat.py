@@ -28,7 +28,9 @@ class TestHeartbeat:
     @pytest.mark.asyncio
     async def test_publisher_loop(self):
         """Test HeartbeatPublisher connects and publishes periodically."""
-        publisher = HeartbeatPublisher(nats_url="nats://localhost:4222", subject="test.heartbeat")
+        publisher = HeartbeatPublisher(
+            nats_url="nats://localhost:4222", subject="test.heartbeat"
+        )
         publisher.interval = 0.1  # Fast loop
 
         with patch("nats.connect", new_callable=AsyncMock) as mock_connect:
@@ -60,12 +62,15 @@ class TestHeartbeat:
     @pytest.mark.asyncio
     async def test_main_entry_point(self):
         """Test the main entry point function."""
-        with patch("socket_client.heartbeat.HeartbeatPublisher") as mock_publisher_class:
+        with patch(
+            "socket_client.heartbeat.HeartbeatPublisher"
+        ) as mock_publisher_class:
             mock_publisher = MagicMock()
             mock_publisher.start = AsyncMock()
             mock_publisher_class.return_value = mock_publisher
 
             from socket_client.heartbeat import main
+
             await main()
 
             mock_publisher_class.assert_called_once()

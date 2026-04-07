@@ -173,9 +173,9 @@ class TestMessageThroughputPerformance:
             throughput = batch_size / batch_time
 
             # Throughput should scale with batch size
-            assert (
-                throughput >= batch_size * 0.8
-            ), f"Batch {batch_size} throughput: {throughput:.2f}"
+            assert throughput >= batch_size * 0.8, (
+                f"Batch {batch_size} throughput: {throughput:.2f}"
+            )
 
 
 @pytest.mark.performance
@@ -227,9 +227,9 @@ class TestMemoryUsagePerformance:
             memory_increase = current_memory - initial_memory
 
             # Memory should not grow excessively
-            assert (
-                memory_increase < 50
-            ), f"Memory increased by {memory_increase:.2f}MB after batch {batch}"
+            assert memory_increase < 50, (
+                f"Memory increased by {memory_increase:.2f}MB after batch {batch}"
+            )
 
     @pytest.mark.asyncio
     async def test_message_object_cleanup(self) -> None:
@@ -373,9 +373,9 @@ class TestConnectionPerformance:
             avg_reconnection_time = sum(connection_times) / len(connection_times)
 
             # Reconnections should be fast
-            assert (
-                avg_reconnection_time < 2.0
-            ), f"Avg reconnection time: {avg_reconnection_time:.2f}s"
+            assert avg_reconnection_time < 2.0, (
+                f"Avg reconnection time: {avg_reconnection_time:.2f}s"
+            )
 
     @pytest.mark.asyncio
     async def test_concurrent_connections(self) -> None:
@@ -526,9 +526,9 @@ class TestScalabilityPerformance:
 
             # Processing time should scale reasonably
             time_per_stream = processing_time / stream_count
-            assert (
-                time_per_stream < 0.01
-            ), f"Time per stream ({stream_count}): {time_per_stream:.4f}s"
+            assert time_per_stream < 0.01, (
+                f"Time per stream ({stream_count}): {time_per_stream:.4f}s"
+            )
 
     @pytest.mark.asyncio
     async def test_message_size_scalability(self) -> None:

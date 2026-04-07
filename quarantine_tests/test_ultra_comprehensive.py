@@ -631,8 +631,8 @@ class TestMultipleInstances:
         ]
 
         for i, client in enumerate(clients):
-            assert client.streams == [f"s{i+1}"]
-            assert client.nats_topic == f"t{i+1}"
+            assert client.streams == [f"s{i + 1}"]
+            assert client.nats_topic == f"t{i + 1}"
 
     def test_multiple_servers(self):
         """Test multiple server instances."""
