@@ -46,7 +46,7 @@ class TestAsyncCircuitBreaker:
 
         assert cb.failure_threshold == 5
         assert cb.recovery_timeout == 60
-        assert cb.expected_exception == Exception
+        assert cb.expected_exception is Exception
         assert cb.name == "default"
         assert cb.state == CircuitState.CLOSED
         assert cb.failure_count == 0
@@ -63,7 +63,7 @@ class TestAsyncCircuitBreaker:
 
         assert cb.failure_threshold == 3
         assert cb.recovery_timeout == 30
-        assert cb.expected_exception == ValueError
+        assert cb.expected_exception is ValueError
         assert cb.name == "test-breaker"
 
     @pytest.mark.asyncio
@@ -440,14 +440,14 @@ class TestGlobalCircuitBreakers:
         assert websocket_circuit_breaker.name == "websocket"
         assert websocket_circuit_breaker.failure_threshold == 5
         assert websocket_circuit_breaker.recovery_timeout == 60
-        assert websocket_circuit_breaker.expected_exception == Exception
+        assert websocket_circuit_breaker.expected_exception is Exception
 
     def test_nats_circuit_breaker_configuration(self) -> None:
         """Test NATS circuit breaker configuration."""
         assert nats_circuit_breaker.name == "nats"
         assert nats_circuit_breaker.failure_threshold == 3
         assert nats_circuit_breaker.recovery_timeout == 30
-        assert nats_circuit_breaker.expected_exception == Exception
+        assert nats_circuit_breaker.expected_exception is Exception
 
     def test_global_instances_are_different(self) -> None:
         """Test that global instances are separate."""
