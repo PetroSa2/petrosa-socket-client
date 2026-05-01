@@ -5,12 +5,11 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-  workflow_dispatch:
 
 jobs:
   pipeline:
     name: CI Pipeline
-    uses: PetroSa2/petrosa_k8s/.github/workflows/ci-pipeline.yml@main
+    uses: PetroSa2/petrosa-shared-workflows/.github/workflows/ci-pipeline.yml@main
     with:
       service-name: 'socket-client'
       image-name: 'yurisa2/petrosa-socket-client'
