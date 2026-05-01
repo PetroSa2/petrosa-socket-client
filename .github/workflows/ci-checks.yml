@@ -10,6 +10,7 @@ on:
 jobs:
   pipeline:
     name: CI Pipeline
-    uses: PetroSa2/petrosa-shared-workflows/.github/workflows/test-runner.yml@main
+    uses: PetroSa2/petrosa-shared-workflows/.github/workflows/test-complex.yml@main
     with:
-      message: 'testing reusable workflow cross-repo call'
+      service-name: 'socket-client'
+      skip-lint: false
