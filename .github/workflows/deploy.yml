@@ -126,13 +126,17 @@ jobs:
           # Update the image tag in manifests robustly (preserves registry/repo, only updates tag)
           # Handles both qualified (e.g., repo/petrosa-socket-client:tag) and unqualified (petrosa-socket-client:tag) image names
           find petrosa_k8s/k8s/socket-client -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -E -i "s|(image:[[:space:]]*)([^[:space:]]*/)?(petrosa-socket-client):[^[:space:]]*|\1\2\3:$VERSION|g"
-          
+
           # Update version labels specifically (targets common label patterns)
           # Anchored to start of line to prevent over-matching apiVersion
           find petrosa_k8s/k8s/socket-client -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -E -i "s/^([[:space:]]*(version|app\.kubernetes\.io\/version)):.*/\1: $VERSION/g"
-          
+
           # Also handle any lingering placeholders for backward compatibility
           find petrosa_k8s/k8s/socket-client -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -i "s/VERSION_PLACEHOLDER/$VERSION/g"
+
+          # Update OTEL service.version substring inside OTEL_RESOURCE_ATTRIBUTES env values
+          # Bounded by [^,"[:space:]]+ so it stops at the next attribute, closing quote, or whitespace
+          find petrosa_k8s/k8s/socket-client -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -E -i "s|(service\.version=)[^,\"[:space:]]+|\1$VERSION|g"
 
           echo "Updated socket-client image tag to $VERSION in petrosa_k8s/k8s/socket-client/"
 
@@ -158,7 +162,7 @@ jobs:
     - name: Notify Deployment Status
       run: |
         VERSION="${{ needs.create-release.outputs.version }}"
-        
+
         if [ "${{ needs.gitops-update.result }}" == "success" ]; then
           echo "✅ Build, Push, and GitOps Update successful!"
           echo "📦 Version: ${VERSION}"
