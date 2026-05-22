@@ -41,7 +41,7 @@ def get_streams() -> list[str]:
 
 # NATS configuration
 NATS_URL = os.getenv("NATS_URL", "nats://localhost:4222")
-NATS_TOPIC = os.getenv("NATS_TOPIC", "binance.websocket.data")
+NATS_TOPIC = os.getenv("NATS_TOPIC", "binance.futures.websocket.data")
 NATS_CLIENT_NAME = os.getenv("NATS_CLIENT_NAME", "petrosa-socket-client")
 
 # WebSocket connection settings
