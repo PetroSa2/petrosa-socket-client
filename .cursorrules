@@ -22,7 +22,7 @@ The socket-client is a critical component in the data ingestion pipeline, proces
 - **Ecosystem Architecture**: See master § System Architecture Overview → Data Ingestion & Storage Layer
 - **Work Tracking**: See master § Centralized Work Tracking with GitHub Projects
 - **GitHub CLI Profile**: See master § Prerequisites & Installation → GitHub CLI Profile Configuration (CRITICAL: Always use `yurisa2` profile)
-- **NATS Topics**: See master § NATS Message Bus → `binance.websocket.data`
+- **NATS Topics**: See master § NATS Message Bus → `binance.futures.websocket.data`
 - **Deployment Patterns**: See master § Socket Client Configuration
 - **Scaling Strategy**: See master § Deployment Patterns (WHY single replica is critical)
 - **Shared Resources**: See master § Shared Resources (ConfigMaps, Secrets)
@@ -100,7 +100,7 @@ resources:
   limits:
     memory: "4Gi"    # Increase memory
     cpu: "2000m"      # Increase CPU
-    
+
 # NEVER do this:
 # replicas: 3  ❌ WRONG - creates duplicate streams
 ```
@@ -119,14 +119,14 @@ class BinanceWebSocketClient:
     5. Start heartbeat monitoring loop
     6. Handle reconnections with exponential backoff
     """
-    
+
     async def start(self):
         await self._connect_nats()
         await self._connect_websocket()
         self.processor_task = asyncio.create_task(self._process_messages())
         self.ping_task = asyncio.create_task(self._ping_loop())
         self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
-    
+
     async def _connect_websocket(self):
         """Connect with exponential backoff."""
         attempt = 0
@@ -153,9 +153,9 @@ class BinanceWebSocketClient:
 def calculate_backoff_delay(attempt: int, base_delay: int = 5, max_delay: int = 60) -> float:
     """
     Calculate exponential backoff with jitter.
-    
+
     Formula: min(max_delay, base_delay * 2^attempt + random(0, 1))
-    
+
     Examples:
     - Attempt 1: 5s + jitter
     - Attempt 2: 10s + jitter
@@ -230,7 +230,7 @@ BINANCE_WS_URL="wss://stream.binance.com:9443"
 
 # NATS configuration
 NATS_URL="nats://nats-server.nats:4222"
-NATS_TOPIC="binance.websocket.data"
+NATS_TOPIC="binance.futures.websocket.data"
 ```
 
 ### Message Processing Pipeline
@@ -279,7 +279,7 @@ async def _handle_message(self, message: str):
             logger.warning(f"Queue at {queue_utilization*100}% capacity")
             self.dropped_messages += 1
             return  # Drop message to prevent queue overflow
-        
+
         # Add to queue for processing
         await self.message_queue.put(message)
     except asyncio.QueueFull:
@@ -468,7 +468,7 @@ MAX_QUEUE_SIZE=5000                  # Message queue capacity
 MESSAGE_TTL_SECONDS=60               # Drop messages older than this
 
 # NATS configuration
-NATS_TOPIC="binance.websocket.data"  # Topic for publishing
+NATS_TOPIC="binance.futures.websocket.data"  # Topic for publishing
 
 # Monitoring
 ENABLE_HEARTBEAT=true                # Enable periodic heartbeat logs
@@ -490,7 +490,7 @@ HEARTBEAT_INTERVAL=30                # Heartbeat interval in seconds
 kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps -l app=socket-client | grep "messages_per_second"
 
 # Verify data flow to NATS
-kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/petrosa-realtime-strategies -n petrosa-apps -- nats sub binance.websocket.data
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/petrosa-realtime-strategies -n petrosa-apps -- nats sub binance.futures.websocket.data
 ```
 
 ### Always Reference

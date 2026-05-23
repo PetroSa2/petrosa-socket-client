@@ -71,7 +71,7 @@ class HealthServer:
             self.runner = web.AppRunner(self.app)
             await self.runner.setup()
 
-            self.site = web.TCPSite(self.runner, "0.0.0.0", self.port)
+            self.site = web.TCPSite(self.runner, "0.0.0.0", self.port)  # nosec B104 - intentional for k8s readiness probes
             await self.site.start()
 
             self.logger.info(f"Health server started on port {self.port}")

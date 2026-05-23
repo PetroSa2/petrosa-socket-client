@@ -31,7 +31,7 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 │                                │              │    │                 │    │
 │                                │ NATS         │    └─────────────────┘    │
 │                                │              │             │              │
-│                         binance.websocket.data│    signals.trading         │
+│                         binance.futures.websocket.data│    signals.trading         │
 │                                │              │             │              │
 │                                │              │             ▼              │
 │                                │              │    ┌─────────────────┐    │
@@ -57,11 +57,11 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 
 | Service | Purpose | Input | Output | Status |
 |---------|---------|-------|--------|--------|
-| **petrosa-socket-client** | Real-time WebSocket data ingestion | Binance WebSocket API | NATS: `binance.websocket.data` | **YOU ARE HERE** |
+| **petrosa-socket-client** | Real-time WebSocket data ingestion | Binance WebSocket API | NATS: `binance.futures.websocket.data` | **YOU ARE HERE** |
 | **petrosa-binance-data-extractor** | Historical data extraction & gap filling | Binance REST API | MySQL (klines, funding rates, trades) | Batch Processing |
 | **petrosa-bot-ta-analysis** | Technical analysis (28 strategies) | MySQL klines data | NATS: `intent.trading.*` | Signal Generation |
 | **petrosa-cio** | Centralized orchestrator & gatekeeper | NATS: `intent.>` | NATS: `signals.trading` | Interception Layer |
-| **petrosa-realtime-strategies** | Real-time signal generation | NATS: `binance.websocket.data` | NATS: `intent.trading.*` | Live Processing |
+| **petrosa-realtime-strategies** | Real-time signal generation | NATS: `binance.futures.websocket.data` | NATS: `intent.trading.*` | Live Processing |
 | **petrosa-tradeengine** | Order execution & trade management | NATS: `signals.trading` | Binance Orders API, MongoDB audit | Order Execution |
 | **petrosa_k8s** | Centralized infrastructure | Kubernetes manifests | Cluster resources | Infrastructure |
 
@@ -75,7 +75,7 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 └──────┬──────┘
        │ wss://stream.binance.com:9443
        │ • btcusdt@trade
-       │ • btcusdt@ticker  
+       │ • btcusdt@ticker
        │ • btcusdt@depth20@100ms
        ▼
 ┌──────────────────────┐
@@ -87,7 +87,7 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 │ • Transforms format  │
 │ • Publishes to NATS  │
 └──────┬───────────────┘
-       │ NATS Topic: binance.websocket.data
+       │ NATS Topic: binance.futures.websocket.data
        │
        ▼
 ┌──────────────────────┐
@@ -144,10 +144,10 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 
 | Topic | Publisher | Content | Consumers | Message Rate |
 |-------|-----------|---------|-----------|--------------|
-| `binance.websocket.data` | **socket-client** | Real-time market data | realtime-strategies | 1000+/sec |
+| `binance.futures.websocket.data` | **socket-client** | Real-time market data | realtime-strategies | 1000+/sec |
 | `signals.trading` | ta-bot, realtime-strategies | Trading signals | tradeengine | 50-150/day |
 
-**Message Format (binance.websocket.data):**
+**Message Format (binance.futures.websocket.data):**
 ```json
 {
   "stream": "btcusdt@trade",
@@ -197,7 +197,7 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 
 This service does not expose REST endpoints but includes health check endpoints:
 - `GET /healthz` - Liveness probe
-- `GET /ready` - Readiness probe  
+- `GET /ready` - Readiness probe
 - `GET /metrics` - Prometheus metrics
 - `GET /` - Service information
 
@@ -271,11 +271,11 @@ class Signal(BaseModel):
     price: float               # Signal price
     quantity: float            # Position size
     current_price: float       # Market price at signal time
-    
+
     # Risk management
     stop_loss: Optional[float]
     take_profit: Optional[float]
-    
+
     # Metadata
     timestamp: datetime
     timeframe: str             # e.g., "15m", "1h"
@@ -294,17 +294,17 @@ class TradeOrder(BaseModel):
     type: str                  # "market", "limit", "stop", etc.
     side: str                  # "buy", "sell"
     amount: float              # Order amount
-    
+
     # Price levels
     target_price: Optional[float]
     stop_loss: Optional[float]
     take_profit: Optional[float]
-    
+
     # Order metadata
     order_id: Optional[str]
     status: OrderStatus        # pending, filled, cancelled, etc.
     simulate: bool = True      # Simulation mode flag
-    
+
     # Timestamps
     created_at: datetime
     updated_at: Optional[datetime]
@@ -339,7 +339,7 @@ NATS_URL=nats://nats-server.nats:4222
 # Service-specific
 BINANCE_WS_URL=wss://stream.binance.com:9443
 BINANCE_STREAMS=btcusdt@trade,btcusdt@ticker,btcusdt@depth20@100ms
-NATS_TOPIC=binance.websocket.data
+NATS_TOPIC=binance.futures.websocket.data
 ```
 
 #### Health Checks and Monitoring
@@ -513,7 +513,7 @@ spec:
 ```python
 class BinanceWebSocketClient:
     """Binance WebSocket client with NATS integration."""
-    
+
     def __init__(
         self,
         ws_url: str,
@@ -527,46 +527,46 @@ class BinanceWebSocketClient:
         self.streams = streams
         self.nats_url = nats_url
         self.nats_topic = nats_topic
-        
+
         # Connection state
         self.websocket: Optional[websockets.WebSocketClientProtocol] = None
         self.nats_client: Optional[NATSClient] = None
         self.is_connected = False
         self.is_running = False
-        
+
         # Message processing
         self.message_queue = asyncio.Queue(maxsize=5000)
         self.processed_messages = 0
         self.dropped_messages = 0
-    
+
     async def start(self):
         """Start the WebSocket client."""
         await self._connect_nats()
         self.processor_task = asyncio.create_task(self._process_messages())
         await self._connect_websocket()
         self.ping_task = asyncio.create_task(self._ping_loop())
-        
+
         if constants.ENABLE_HEARTBEAT:
             self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
-    
+
     async def _process_single_message(self, data: dict):
         """Process a single message."""
         # Determine stream name from message type
         stream_name = self._determine_stream_name(data)
-        
+
         # Create structured message
         message = create_message(
             stream=stream_name,
             data=data,
             message_id=str(uuid.uuid4())
         )
-        
+
         # Publish to NATS
         await self.nats_client.publish(
             self.nats_topic,
             message.to_json().encode("utf-8")
         )
-        
+
         self.processed_messages += 1
 ```
 
@@ -576,11 +576,11 @@ def _determine_stream_name(self, data: dict) -> Optional[str]:
     """Determine stream name from Binance message data."""
     event_type = data.get("e", "")
     symbol = data.get("s", "")
-    
+
     # Handle depth updates (order book)
     if "lastUpdateId" in data and "bids" in data:
         return f"{symbol.lower()}@depth20@100ms"
-    
+
     # Map event types to stream names
     if event_type == "trade":
         return f"{symbol.lower()}@trade"
@@ -588,7 +588,7 @@ def _determine_stream_name(self, data: dict) -> Optional[str]:
         return f"{symbol.lower()}@ticker"
     elif event_type == "depthUpdate":
         return f"{symbol.lower()}@depth20@100ms"
-    
+
     return None
 ```
 
@@ -602,18 +602,18 @@ from typing import Dict, Any
 
 class WebSocketMessage(BaseModel):
     """Standardized WebSocket message format."""
-    
+
     stream: str = Field(..., description="Stream identifier")
     data: Dict[str, Any] = Field(..., description="Raw Binance data")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     message_id: str = Field(..., description="Unique message ID")
     source: str = Field(default="binance-websocket")
     version: str = Field(default="1.0")
-    
+
     def to_json(self) -> str:
         """Convert to JSON string for NATS."""
         return self.json(by_alias=True)
-    
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
@@ -637,7 +637,7 @@ def create_message(stream: str, data: dict, message_id: str) -> WebSocketMessage
 ```python
 class CircuitBreaker:
     """Circuit breaker for fault tolerance."""
-    
+
     def __init__(
         self,
         failure_threshold: int = 5,
@@ -647,11 +647,11 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.expected_exception = expected_exception
-        
+
         self.failure_count = 0
         self.last_failure_time = None
         self.state = "closed"  # closed, open, half_open
-    
+
     async def call(self, func, *args, **kwargs):
         """Call function with circuit breaker protection."""
         if self.state == "open":
@@ -659,7 +659,7 @@ class CircuitBreaker:
                 self.state = "half_open"
             else:
                 raise CircuitBreakerOpenError("Circuit breaker is open")
-        
+
         try:
             result = await func(*args, **kwargs)
             self._on_success()
@@ -667,17 +667,17 @@ class CircuitBreaker:
         except self.expected_exception as e:
             self._on_failure()
             raise e
-    
+
     def _on_success(self):
         """Reset circuit breaker on success."""
         self.failure_count = 0
         self.state = "closed"
-    
+
     def _on_failure(self):
         """Track failure and open circuit if threshold reached."""
         self.failure_count += 1
         self.last_failure_time = time.time()
-        
+
         if self.failure_count >= self.failure_threshold:
             self.state = "open"
 ```
@@ -702,11 +702,11 @@ async def ready() -> Dict[str, Any]:
     # Check WebSocket connection
     if not client.is_connected:
         return {"status": "not_ready", "reason": "websocket_disconnected"}
-    
+
     # Check NATS connection
     if not client.nats_client or client.nats_client.is_closed:
         return {"status": "not_ready", "reason": "nats_disconnected"}
-    
+
     return {"status": "ready"}
 
 @app.get("/metrics")
@@ -752,7 +752,7 @@ async def metrics() -> Dict[str, Any]:
 
 ### Message Formats and Topics
 
-**Published NATS Topic:** `binance.websocket.data`
+**Published NATS Topic:** `binance.futures.websocket.data`
 
 **Message Types:**
 
@@ -831,9 +831,9 @@ async def main():
             "btcusdt@depth20@100ms"
         ],
         nats_url="nats://localhost:4222",
-        nats_topic="binance.websocket.data"
+        nats_topic="binance.futures.websocket.data"
     )
-    
+
     try:
         await client.start()
         # Client runs until interrupted
@@ -861,7 +861,7 @@ client = BinanceWebSocketClient(
     ws_url="wss://stream.binance.com:9443",
     streams=streams,
     nats_url="nats://nats-server.nats:4222",
-    nats_topic="binance.websocket.data",
+    nats_topic="binance.futures.websocket.data",
     max_reconnect_attempts=15,
     reconnect_delay=10
 )
@@ -888,7 +888,7 @@ print(f"NATS state: {metrics['nats_state']}")
 | `BINANCE_WS_URL` | `wss://stream.binance.com:9443` | Binance WebSocket URL |
 | `BINANCE_STREAMS` | `btcusdt@trade,btcusdt@ticker,btcusdt@depth20@100ms` | Comma-separated streams |
 | `NATS_URL` | `nats://localhost:4222` | NATS server URL |
-| `NATS_TOPIC` | `binance.websocket.data` | NATS topic for publishing |
+| `NATS_TOPIC` | `binance.futures.websocket.data` | NATS topic for publishing |
 | `LOG_LEVEL` | `INFO` | Logging level |
 | `WEBSOCKET_RECONNECT_DELAY` | `5` | Reconnection delay (seconds) |
 | `WEBSOCKET_MAX_RECONNECT_ATTEMPTS` | `10` | Max reconnection attempts |
@@ -909,7 +909,7 @@ BINANCE_WS_URL = os.getenv("BINANCE_WS_URL", "wss://stream.binance.com:9443")
 
 # NATS configuration
 NATS_URL = os.getenv("NATS_URL", "nats://localhost:4222")
-NATS_TOPIC = os.getenv("NATS_TOPIC", "binance.websocket.data")
+NATS_TOPIC = os.getenv("NATS_TOPIC", "binance.futures.websocket.data")
 
 # WebSocket connection settings
 WEBSOCKET_RECONNECT_DELAY = int(os.getenv("WEBSOCKET_RECONNECT_DELAY", "5"))
@@ -967,7 +967,7 @@ spec:
               name: petrosa-common-config
               key: NATS_URL
         - name: NATS_TOPIC
-          value: "binance.websocket.data"
+          value: "binance.futures.websocket.data"
         - name: LOG_LEVEL
           valueFrom:
             configMapKeyRef:
@@ -1251,7 +1251,7 @@ kubectl logs -n petrosa-apps -l app=socket-client | grep "Connected to Binance"
 
 # Check NATS messages
 kubectl exec -it deployment/petrosa-socket-client -n petrosa-apps -- \
-  nats sub binance.websocket.data
+  nats sub binance.futures.websocket.data
 
 # Check health
 kubectl exec -it deployment/petrosa-socket-client -n petrosa-apps -- \
