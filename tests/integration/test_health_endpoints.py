@@ -101,24 +101,27 @@ class TestMetricsEndpoint(AioHTTPTestCase):
 
         data = await resp.text()
         assert isinstance(data, str)
-        assert "# HELP" in data or "service_uptime_seconds" in data
 
     @unittest_run_loop
-    async def test_metrics_includes_uptime(self):
-        """Test metrics includes uptime."""
+    async def test_metrics_reports_otlp_push(self):
+        """Metrics are now exported via OTLP push, not Prometheus scrape.
+
+        The /metrics route is retained for compatibility but no longer emits
+        Prometheus exposition format; it returns an informational note instead.
+        """
         resp = await self.client.request("GET", "/metrics")
         data = await resp.text()
 
-        assert "service_uptime_seconds" in data
+        assert "OTLP push" in data
 
     @unittest_run_loop
-    async def test_metrics_includes_start_time(self):
-        """Test metrics includes start time."""
-        # Check for another metric that should be present
+    async def test_metrics_has_no_prometheus_payload(self):
+        """The scrape endpoint must not emit Prometheus exposition output."""
         resp = await self.client.request("GET", "/metrics")
         data = await resp.text()
 
-        assert "memory_usage_bytes" in data
+        assert "# HELP" not in data
+        assert "service_uptime_seconds" not in data
 
 
 class TestHealthServerStartStop(AioHTTPTestCase):
