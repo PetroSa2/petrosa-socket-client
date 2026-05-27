@@ -10,33 +10,9 @@ from datetime import datetime
 from typing import Any, Optional, cast
 
 from aiohttp import web
-from prometheus_client import Counter, Gauge, generate_latest
 from structlog import get_logger
 
 logger = get_logger(__name__)
-
-# Prometheus metrics
-WEBSOCKET_CONNECTED = Gauge(
-    "websocket_connected", "WebSocket connection status (1=connected, 0=disconnected)"
-)
-WEBSOCKET_MESSAGES_PROCESSED = Counter(
-    "websocket_messages_processed_total", "Total WebSocket messages processed"
-)
-WEBSOCKET_MESSAGES_DROPPED = Counter(
-    "websocket_messages_dropped_total", "Total WebSocket messages dropped"
-)
-WEBSOCKET_RECONNECT_ATTEMPTS = Counter(
-    "websocket_reconnect_attempts_total", "Total WebSocket reconnection attempts"
-)
-NATS_CONNECTED = Gauge(
-    "nats_connected", "NATS connection status (1=connected, 0=disconnected)"
-)
-NATS_MESSAGES_PUBLISHED = Counter(
-    "nats_messages_published_total", "Total messages published to NATS"
-)
-SERVICE_UPTIME = Gauge("service_uptime_seconds", "Service uptime in seconds")
-MEMORY_USAGE = Gauge("memory_usage_bytes", "Memory usage in bytes")
-CPU_USAGE = Gauge("cpu_usage_percent", "CPU usage percentage")
 
 
 class HealthServer:
@@ -149,30 +125,21 @@ class HealthServer:
             )
 
     async def metrics(self, request: web.Request) -> web.Response:
-        """Metrics endpoint for Prometheus monitoring."""
-        try:
-            # Update gauge metrics with current values
-            uptime = time.time() - self.start_time
-            SERVICE_UPTIME.set(uptime)
+        """Metrics endpoint (retained for compatibility).
 
-            memory_mb = self._get_memory_usage()
-            MEMORY_USAGE.set(memory_mb * 1024 * 1024)  # Convert MB to bytes
-
-            cpu = self._get_cpu_usage()
-            CPU_USAGE.set(cpu)
-
-            # Generate Prometheus-format metrics
-            metrics_output = generate_latest()
-
-            return web.Response(
-                body=metrics_output,
-                headers={"Content-Type": "text/plain; version=0.0.4; charset=utf-8"},
-                status=200,
-            )
-
-        except Exception as e:
-            self.logger.error(f"Metrics endpoint failed: {e}")
-            return web.Response(text=f"# Error generating metrics: {e}\n", status=500)
+        Application metrics are now emitted as OTel SDK instruments and shipped
+        via the OTLP push pipeline configured by ``setup_telemetry()`` — they are
+        no longer exposed for Prometheus scraping here. The route is preserved so
+        existing probes/references do not 404.
+        """
+        return web.Response(
+            text=(
+                "# socket-client metrics are exported via OTLP push "
+                "(OpenTelemetry), not Prometheus scrape\n"
+            ),
+            headers={"Content-Type": "text/plain; version=0.0.4; charset=utf-8"},
+            status=200,
+        )
 
     async def root(self, request: web.Request) -> web.Response:
         """Root endpoint with service information."""

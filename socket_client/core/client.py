@@ -14,6 +14,7 @@ from typing import Any, Optional
 import nats
 import websockets
 from nats.aio.client import Client as NATSClient
+from opentelemetry import metrics
 from structlog import get_logger
 
 import constants
@@ -32,6 +33,37 @@ try:
     tracer = get_tracer(__name__)
 except ImportError:
     tracer = None
+
+# OpenTelemetry metrics — instruments emit through the OTLP push pipeline wired
+# by setup_telemetry() in main.py. get_meter() returns a proxy meter before the
+# MeterProvider is installed, so module-level creation is safe.
+_meter = metrics.get_meter(__name__)
+_messages_forwarded = _meter.create_counter(
+    "socket_client_messages_forwarded_total",
+    description="Binance WS messages successfully published to NATS",
+)
+_messages_dropped = _meter.create_counter(
+    "socket_client_messages_dropped_total",
+    description="Messages dropped (queue full or NATS disconnect)",
+)
+_reconnect_attempts = _meter.create_counter(
+    "socket_client_reconnect_attempts_total",
+    description="WebSocket reconnection attempts",
+)
+_connection_errors = _meter.create_counter(
+    "socket_client_connection_errors_total",
+    description="WebSocket or NATS connection failures",
+)
+_processing_time = _meter.create_histogram(
+    "socket_client_message_processing_seconds",
+    description="Time from queue dequeue to NATS publish",
+    unit="s",
+)
+_queue_wait_time = _meter.create_histogram(
+    "socket_client_queue_wait_seconds",
+    description="Time a worker waited on the queue before dequeue",
+    unit="s",
+)
 
 
 class BinanceWebSocketClient:
@@ -258,6 +290,7 @@ class BinanceWebSocketClient:
 
         except Exception as e:
             self.logger.error(f"Failed to connect to WebSocket: {e}")
+            _connection_errors.add(1, {"service": "socket-client", "type": "websocket"})
             if span:
                 span.record_exception(e)
             self.is_connected = False
@@ -279,6 +312,7 @@ class BinanceWebSocketClient:
 
         except Exception as e:
             self.logger.error(f"Failed to connect to NATS: {e}")
+            _connection_errors.add(1, {"service": "socket-client", "type": "nats"})
             raise
 
     async def _websocket_listener(self) -> None:
@@ -302,6 +336,9 @@ class BinanceWebSocketClient:
                         self.message_queue.put_nowait(data)
                     except asyncio.QueueFull:
                         self.dropped_messages += 1
+                        _messages_dropped.add(
+                            1, {"service": "socket-client", "reason": "queue_full"}
+                        )
                         self.logger.warning(
                             "Message queue full, dropping message",
                             dropped_count=self.dropped_messages,
@@ -332,6 +369,7 @@ class BinanceWebSocketClient:
         while self.is_running:
             try:
                 # Get message from queue with timeout
+                wait_start = time.perf_counter()
                 try:
                     data = await asyncio.wait_for(
                         self.message_queue.get(),
@@ -339,6 +377,9 @@ class BinanceWebSocketClient:
                     )
                 except TimeoutError:
                     continue
+                _queue_wait_time.record(
+                    time.perf_counter() - wait_start, {"service": "socket-client"}
+                )
 
                 # Process message
                 await self._process_single_message(data)
@@ -371,6 +412,7 @@ class BinanceWebSocketClient:
 
     async def _do_process_single_message(self, data: dict, span: Any = None) -> None:
         """Internal method for processing a single message."""
+        process_start = time.perf_counter()
         try:
             # Validate message format - Binance WebSocket messages come as direct JSON objects
             # Note: isinstance check is defensive code for runtime safety, though type hints declare dict
@@ -410,6 +452,13 @@ class BinanceWebSocketClient:
                     )
 
                     self.processed_messages += 1
+                    _messages_forwarded.add(
+                        1, {"service": "socket-client", "stream": stream_name}
+                    )
+                    _processing_time.record(
+                        time.perf_counter() - process_start,
+                        {"service": "socket-client", "stream": stream_name},
+                    )
                     if span:
                         span.set_attribute("published", True)
 
@@ -440,6 +489,9 @@ class BinanceWebSocketClient:
             else:
                 self.logger.warning("NATS client not connected, dropping message")
                 self.dropped_messages += 1
+                _messages_dropped.add(
+                    1, {"service": "socket-client", "reason": "nats_disconnected"}
+                )
                 if span:
                     span.set_attribute("error", "nats_not_connected")
 
@@ -626,6 +678,7 @@ class BinanceWebSocketClient:
 
             except Exception as e:
                 self.reconnect_attempts += 1
+                _reconnect_attempts.add(1, {"service": "socket-client"})
                 self.logger.error(
                     f"Reconnection attempt {self.reconnect_attempts} failed: {e}"
                 )
