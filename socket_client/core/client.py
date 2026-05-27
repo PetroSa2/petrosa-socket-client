@@ -9,6 +9,7 @@ import asyncio
 import json
 import time
 import uuid
+from collections import deque
 from typing import Any, Optional
 
 import nats
@@ -124,6 +125,10 @@ class BinanceWebSocketClient:
         self.processed_messages = 0
         self.dropped_messages = 0
         self.last_message_time: float = 0.0
+
+        # Rolling sample of recent dequeue→NATS-publish durations (seconds),
+        # consumed by SocketClientHealthEvaluator as the publish-latency signal.
+        self._recent_publish_latencies: deque[float] = deque(maxlen=200)
 
         # Heartbeat statistics
         self.start_time = time.time()
@@ -455,10 +460,12 @@ class BinanceWebSocketClient:
                     _messages_forwarded.add(
                         1, {"service": "socket-client", "stream": stream_name}
                     )
+                    elapsed = time.perf_counter() - process_start
                     _processing_time.record(
-                        time.perf_counter() - process_start,
+                        elapsed,
                         {"service": "socket-client", "stream": stream_name},
                     )
+                    self._recent_publish_latencies.append(elapsed)
                     if span:
                         span.set_attribute("published", True)
 
@@ -699,6 +706,12 @@ class BinanceWebSocketClient:
             "reconnect_attempts": self.reconnect_attempts,
             "processed_messages": self.processed_messages,
             "dropped_messages": self.dropped_messages,
+            "recent_publish_latency_s": (
+                sum(self._recent_publish_latencies)
+                / len(self._recent_publish_latencies)
+                if self._recent_publish_latencies
+                else 0.0
+            ),
             "stream_count": len(self.streams),
             "streams": self.streams.copy(),
             "uptime": uptime,

@@ -50,6 +50,7 @@ class SocketClientService:
 
         self.websocket_client: Optional[BinanceWebSocketClient] = None
         self.health_server: Optional[HealthServer] = None
+        self.health_evaluator: Optional[Any] = None
         self.shutdown_event = asyncio.Event()
 
     async def start(self) -> None:
@@ -77,6 +78,24 @@ class SocketClientService:
             await self.websocket_client.start()
             self.logger.info("WebSocket client started successfully")
 
+            # Start health evaluator (publishes evaluator.socket-client.verdict).
+            # Optional: skipped if petrosa-otel lacks the evaluators framework.
+            try:
+                from socket_client.evaluators import (
+                    build_socket_client_health_evaluator,
+                )
+
+                self.health_evaluator = build_socket_client_health_evaluator(
+                    self.websocket_client
+                )
+                if self.health_evaluator is not None:
+                    await self.health_evaluator.start()
+                    self.logger.info("Socket-client health evaluator started")
+            except ImportError:
+                self.logger.warning(
+                    "petrosa_otel.evaluators unavailable; health evaluator disabled"
+                )
+
             # Wait for shutdown signal
             await self.shutdown_event.wait()
 
@@ -89,6 +108,9 @@ class SocketClientService:
     async def stop(self) -> None:
         """Stop the service."""
         self.logger.info("Stopping Petrosa Socket Client service")
+
+        if self.health_evaluator:
+            await self.health_evaluator.stop()
 
         if self.websocket_client:
             await self.websocket_client.stop()
