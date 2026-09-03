@@ -6,6 +6,7 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
+import websockets
 
 from socket_client.core.client import BinanceWebSocketClient
 
@@ -157,7 +158,7 @@ class TestBinanceWebSocketClient:
         websocket_client.is_running = True
         websocket_client.is_connected = True
         websocket_client.websocket = AsyncMock()
-        websocket_client.websocket.closed = False
+        websocket_client.websocket.state = websockets.State.OPEN
         websocket_client.ping_interval = 0.01  # Short interval for testing
 
         # Start ping loop
@@ -321,7 +322,7 @@ class TestBinanceWebSocketClient:
         # Mock connections
         websocket_client.is_connected = True
         websocket_client.websocket = AsyncMock()
-        websocket_client.websocket.closed = False
+        websocket_client.websocket.state = websockets.State.OPEN
         websocket_client.nats_client = AsyncMock()
         websocket_client.nats_client.is_closed = False
 

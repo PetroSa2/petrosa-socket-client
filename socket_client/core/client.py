@@ -566,7 +566,7 @@ class BinanceWebSocketClient:
             try:
                 await asyncio.sleep(self.ping_interval)
 
-                if self.websocket and not self.websocket.closed:
+                if self.websocket and self.websocket.state is websockets.State.OPEN:
                     await self.websocket.ping()
                     self.last_ping = time.time()
 
@@ -633,7 +633,7 @@ class BinanceWebSocketClient:
             # Connection status
             connection_status=self.is_connected,
             websocket_state="connected"
-            if self.websocket and not self.websocket.closed
+            if self.websocket and self.websocket.state is websockets.State.OPEN
             else "disconnected",
             nats_state="connected"
             if self.nats_client and not self.nats_client.is_closed
@@ -719,7 +719,7 @@ class BinanceWebSocketClient:
             "last_message_time": self.last_message_time,
             "last_ping": self.last_ping,
             "websocket_state": "connected"
-            if self.websocket and not self.websocket.closed
+            if self.websocket and self.websocket.state is websockets.State.OPEN
             else "disconnected",
             "nats_state": "connected"
             if self.nats_client and not self.nats_client.is_closed

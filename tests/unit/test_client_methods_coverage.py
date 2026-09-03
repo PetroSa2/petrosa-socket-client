@@ -8,6 +8,7 @@ import time
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+import websockets
 
 from socket_client.core.client import BinanceWebSocketClient
 
@@ -145,6 +146,44 @@ class TestGetMetrics:
         metrics = client.get_metrics()
 
         assert metrics["reconnect_attempts"] == 5
+
+    def test_get_metrics_websocket_state_connected_without_closed_attr(self):
+        """Regression test for #128.
+
+        `websockets>=13`'s `ClientConnection` has no `.closed` attribute
+        (replaced by `.state`). `get_metrics()` must read `.state` so it does
+        not raise `AttributeError` on every health-evaluator tick when a real
+        connection object is attached. `spec=["state"]` mirrors that surface:
+        accessing `.closed` on this mock would itself raise `AttributeError`.
+        """
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+        )
+        client.websocket = Mock(spec=["state"])
+        client.websocket.state = websockets.State.OPEN
+
+        metrics = client.get_metrics()
+
+        assert metrics["websocket_state"] == "connected"
+
+    def test_get_metrics_websocket_state_disconnected_when_closed(self):
+        """Companion to the regression test above: a CLOSED state reports
+        `disconnected` without touching the non-existent `.closed` attribute."""
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+        )
+        client.websocket = Mock(spec=["state"])
+        client.websocket.state = websockets.State.CLOSED
+
+        metrics = client.get_metrics()
+
+        assert metrics["websocket_state"] == "disconnected"
 
 
 @pytest.mark.unit
