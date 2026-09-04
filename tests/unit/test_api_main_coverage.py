@@ -34,13 +34,36 @@ class TestCreateApp:
         assert app.version is not None
 
     def test_create_app_has_routes(self):
-        """Test app has routes configured."""
+        """Test app has routes configured.
+
+        Modern FastAPI/Starlette lazily wraps routers attached via
+        ``include_router()`` in an internal ``_IncludedRouter`` placeholder
+        that has no ``.path`` attribute -- only directly-declared routes
+        (like the app's own ``/``, ``/healthz``, ``/ready``, plus the
+        framework's ``/docs``/``/openapi.json``) expose ``.path`` up front.
+        Filter defensively with ``getattr`` instead of assuming every
+        entry in ``app.routes`` is a plain ``Route``/``APIRoute``.
+        """
         app = create_app()
 
-        routes = [route.path for route in app.routes]
+        routes = [
+            path
+            for path in (getattr(route, "path", None) for route in app.routes)
+            if path is not None
+        ]
 
         assert len(routes) > 0
         assert "/" in routes or any("/" in r for r in routes)
+
+    def test_create_app_included_router_routes_resolve_at_runtime(self):
+        """The included config router has no eager `.path` on its wrapper,
+        but must still resolve to working endpoints at request time."""
+        app = create_app()
+        client = TestClient(app)
+
+        response = client.get("/api/v1/config/streams")
+
+        assert response.status_code != 404
 
     def test_create_app_openapi_url(self):
         """Test app has OpenAPI documentation."""
