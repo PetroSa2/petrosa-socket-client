@@ -269,3 +269,47 @@ class TestPingLoop:
         client.last_ping = time.time()
 
         assert client.last_ping > initial_time
+
+    @pytest.mark.asyncio
+    async def test_ping_loop_sends_ping_when_websocket_open(self):
+        """Regression test for #128.
+
+        `websockets>=13`'s `ClientConnection` has no `.closed` attribute
+        (replaced by `.state`). `_ping_loop` must check `.state` so it
+        actually sends pings instead of raising `AttributeError` on every
+        iteration. Synchronized on an `asyncio.Event` (rather than a fixed
+        sleep) so it can't flake under CI load.
+        """
+        import websockets
+
+        client = BinanceWebSocketClient(
+            ws_url="wss://test.com",
+            streams=["test@stream"],
+            nats_url="nats://localhost:4222",
+            nats_topic="test.topic",
+            ping_interval=1,
+        )
+        client.is_running = True
+        client.is_connected = True
+        client.websocket = AsyncMock()
+        client.websocket.state = websockets.State.OPEN
+
+        pinged = asyncio.Event()
+
+        async def _on_ping(*_args, **_kwargs):
+            pinged.set()
+
+        client.websocket.ping.side_effect = _on_ping
+
+        task = asyncio.create_task(client._ping_loop())
+        try:
+            await asyncio.wait_for(pinged.wait(), timeout=2)
+        finally:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+        client.websocket.ping.assert_called()
+        assert client.last_ping > 0
