@@ -6,6 +6,7 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
+import websockets
 
 from socket_client.core.client import BinanceWebSocketClient
 
@@ -157,14 +158,20 @@ class TestBinanceWebSocketClient:
         websocket_client.is_running = True
         websocket_client.is_connected = True
         websocket_client.websocket = AsyncMock()
-        websocket_client.websocket.closed = False
+        websocket_client.websocket.state = websockets.State.OPEN
         websocket_client.ping_interval = 0.01  # Short interval for testing
 
         # Start ping loop
         task = asyncio.create_task(websocket_client._ping_loop())
 
-        # Wait for ping
-        await asyncio.sleep(0.05)
+        # Poll for the ping instead of a single fixed sleep: under CI/full-suite
+        # load a bare `asyncio.sleep(0.05)` can lose the scheduling race against
+        # `ping_interval=0.01`, flaking codecov's patch coverage on the line
+        # this exercises. Poll up to a generous 2s ceiling, checking every 10ms.
+        for _ in range(200):
+            if websocket_client.websocket.ping.called:
+                break
+            await asyncio.sleep(0.01)
 
         # Cancel task
         task.cancel()
@@ -321,7 +328,7 @@ class TestBinanceWebSocketClient:
         # Mock connections
         websocket_client.is_connected = True
         websocket_client.websocket = AsyncMock()
-        websocket_client.websocket.closed = False
+        websocket_client.websocket.state = websockets.State.OPEN
         websocket_client.nats_client = AsyncMock()
         websocket_client.nats_client.is_closed = False
 
