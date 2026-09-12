@@ -17,7 +17,7 @@ NC := \033[0m # No Color
 
 # Variables (customize per service)
 PYTHON := python3
-COVERAGE_THRESHOLD := 20  # Temporary: working toward 40% (currently 21.60%, need integration tests)
+COVERAGE_THRESHOLD := 40  # Golden Standard floor (petrosa_k8s/_bmad-output/project-context.md Decision 2); currently ~85% (#136)
 IMAGE_NAME := petrosa-socket-client
 NAMESPACE := petrosa-apps
 
@@ -244,4 +244,3 @@ cleanup-docs: ## Archive temporary documentation files
 
 validate-docs: ## Validate documentation naming standards
 	@bash -c 'temp_docs=$$(find docs/ -maxdepth 1 -type f -regex ".*_\(SUMMARY\|FIX\|COMPLETE\|STATUS\)\.md$$" || true) && if [ -n "$$temp_docs" ]; then echo "❌ Found temporary docs in root:" && echo "$$temp_docs" && exit 1; else echo "✅ Documentation standards OK"; fi'
-

@@ -675,11 +675,17 @@ class TestCircuitBreakerEdgeCases:
         async def keyboard_interrupt_function():
             raise KeyboardInterrupt("User interrupted")
 
-        # KeyboardInterrupt should be propagated and counted as failure
+        # `call()` only catches `self.expected_exception` (default: Exception).
+        # KeyboardInterrupt (like SystemExit and asyncio.CancelledError) is a
+        # BaseException, not an Exception, so it is intentionally NOT caught
+        # here -- it propagates immediately, unrecorded, and does not trip the
+        # circuit. Catching BaseException instead would risk silently
+        # swallowing asyncio.CancelledError during real cancellation, which
+        # would be far worse than under-counting a Ctrl+C. See #136.
         with pytest.raises(KeyboardInterrupt):
             await cb.call(keyboard_interrupt_function)
 
-        assert cb.failure_count == 1
+        assert cb.failure_count == 0
 
 
 @pytest.mark.unit
@@ -688,27 +694,39 @@ class TestCircuitBreakerPerformance:
 
     @pytest.mark.asyncio
     async def test_performance_overhead(self) -> None:
-        """Test performance overhead of circuit breaker."""
+        """Test performance overhead of circuit breaker.
+
+        A ratio against a near-zero-cost baseline (an `await` on a function
+        that just returns a literal) is not a portable CI signal: on a fast
+        or lightly-loaded runner `direct_time` can be microseconds, so any
+        fixed per-call cost (two lock acquisitions, a logger call) inflates
+        the ratio by 10-20x with no actual regression -- this is what made
+        the original `< 3.0` ratio assertion flake/fail across environments
+        (#136). Assert an absolute per-call overhead bound instead, which
+        stays meaningful regardless of how fast the bare-async-call baseline
+        happens to be on a given runner.
+        """
         cb = AsyncCircuitBreaker(name="test")
+        iterations = 1000
 
         async def fast_function():
             return "fast"
 
         # Measure time with circuit breaker
         start_time = time.time()
-        for _ in range(1000):
+        for _ in range(iterations):
             await cb.call(fast_function)
         cb_time = time.time() - start_time
 
         # Measure time without circuit breaker
         start_time = time.time()
-        for _ in range(1000):
+        for _ in range(iterations):
             await fast_function()
         direct_time = time.time() - start_time
 
-        # Circuit breaker overhead should be minimal
-        overhead_ratio = cb_time / direct_time if direct_time > 0 else float("inf")
-        assert overhead_ratio < 3.0  # Less than 3x overhead
+        # Circuit breaker overhead should be minimal in absolute terms.
+        per_call_overhead_ms = ((cb_time - direct_time) / iterations) * 1000
+        assert per_call_overhead_ms < 1.0  # Less than 1ms overhead per call
 
     @pytest.mark.asyncio
     async def test_memory_usage_stability(self) -> None:

@@ -31,22 +31,28 @@ os.environ["OTEL_NO_AUTO_INIT"] = "1"
 
 @pytest.fixture
 def sample_trade_message() -> dict:
-    """Sample trade message from Binance WebSocket."""
+    """Sample trade message from Binance WebSocket.
+
+    Note: the client subscribes via a raw single-stream `SUBSCRIBE` method
+    call (see BinanceWebSocketClient._connect_websocket), so Binance sends
+    event objects directly at the top level -- NOT wrapped in the combined
+    `{"stream": ..., "data": {...}}` envelope used by the combined-streams
+    endpoint. This fixture previously used the enveloped shape, which never
+    matched `_determine_stream_name`'s `data.get("e")`/`data.get("s")` lookup
+    and made every test using it silently no-op (see #136).
+    """
     return {
-        "stream": "btcusdt@trade",
-        "data": {
-            "e": "trade",
-            "E": 123456789,
-            "s": "BTCUSDT",
-            "t": 12345,
-            "p": "0.001",
-            "q": "100",
-            "b": 88,
-            "a": 50,
-            "T": 123456785,
-            "m": True,
-            "M": True,
-        },
+        "e": "trade",
+        "E": 123456789,
+        "s": "BTCUSDT",
+        "t": 12345,
+        "p": "0.001",
+        "q": "100",
+        "b": 88,
+        "a": 50,
+        "T": 123456785,
+        "m": True,
+        "M": True,
     }
 
 
@@ -114,6 +120,11 @@ def mock_nats_client():
     mock_nc.connect = AsyncMock()
     mock_nc.publish = AsyncMock()
     mock_nc.close = AsyncMock()
+    # AsyncMock auto-creates a (truthy) Mock for unset attributes, so without
+    # this explicit default `not mock_nc.is_closed` evaluates to False and
+    # every _process_single_message call falls into the "NATS client not
+    # connected, dropping message" branch instead of publishing (#136).
+    mock_nc.is_closed = False
     return mock_nc
 
 
