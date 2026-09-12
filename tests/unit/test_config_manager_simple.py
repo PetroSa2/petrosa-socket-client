@@ -88,23 +88,27 @@ class TestConfigManagerMethods:
         assert hasattr(manager, "get_streams")
         assert callable(manager.get_streams)
 
-    def test_add_stream_method_exists(self):
-        """Test add_stream method exists."""
-        manager = ConfigManager()
-        assert hasattr(manager, "add_stream")
-        assert callable(manager.add_stream)
+    def test_no_mutation_methods_exist(self):
+        """Per #133: mutators were removed — ConfigManager is read-only.
 
-    def test_remove_stream_method_exists(self):
-        """Test remove_stream method exists."""
+        There is no persistence layer or IPC path to the running
+        BinanceWebSocketClient process, so mutating this object cannot
+        change runtime behavior. The former set_streams/add_stream/
+        remove_stream/update_streams/set_reconnection_config/
+        set_circuit_breaker_config methods silently no-opped past a log
+        line and have been removed rather than continuing to mislead
+        callers.
+        """
         manager = ConfigManager()
-        assert hasattr(manager, "remove_stream")
-        assert callable(manager.remove_stream)
-
-    def test_update_streams_method_exists(self):
-        """Test update_streams method exists."""
-        manager = ConfigManager()
-        assert hasattr(manager, "update_streams")
-        assert callable(manager.update_streams)
+        for removed in (
+            "set_streams",
+            "add_stream",
+            "remove_stream",
+            "update_streams",
+            "set_reconnection_config",
+            "set_circuit_breaker_config",
+        ):
+            assert not hasattr(manager, removed)
 
     def test_get_reconnection_config_method_exists(self):
         """Test get_reconnection_config method exists."""

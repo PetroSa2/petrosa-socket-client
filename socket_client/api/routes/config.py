@@ -29,6 +29,41 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/config", tags=["Configuration"])
 
+# Per #133: the mutation endpoints below (POST streams/reconnection/
+# circuit-breaker) previously reported `"success": true` while only ever
+# touching a process-local `ConfigManager` attribute in *this* API process —
+# a separate process from the running `BinanceWebSocketClient` (see
+# socket_client/main.py). There was no persistence layer and no IPC/notify
+# path to the WebSocket client, so the mutation was pure fiction.
+#
+# Rather than silently pretend a durable, propagated change happened, these
+# endpoints are now explicit read-only: streams / reconnection / circuit
+# breaker parameters are static-at-deploy-time, controlled by env vars /
+# the k8s ConfigMap (see constants.py and k8s/socket-client/configmap.yaml),
+# and require a pod restart to take effect. `validate_only` requests still
+# work (they never claimed to persist anything).
+_READ_ONLY_MESSAGE = (
+    "This configuration is read-only at runtime (static-at-deploy-time). "
+    "Set the corresponding environment variable / k8s ConfigMap value and "
+    "restart the service to apply changes. Use validate_only=true to check "
+    "parameters without attempting to apply them."
+)
+
+
+def _read_only_response(current: dict, **extra_metadata: object) -> APIResponse:
+    """Build the standard NOT_IMPLEMENTED envelope for mutation endpoints."""
+    metadata: dict = {"current_config": current}
+    metadata.update(extra_metadata)
+    return APIResponse(
+        success=False,
+        data=None,
+        error={
+            "code": "NOT_IMPLEMENTED",
+            "message": _READ_ONLY_MESSAGE,
+        },
+        metadata=metadata,
+    )
+
 
 def validate_stream_format(stream: str) -> bool:
     """Validate Binance WebSocket stream format."""
@@ -68,18 +103,22 @@ async def get_streams():
 @router.post("/streams", response_model=APIResponse)
 async def update_streams(request: StreamsUpdate):
     """
-    Update WebSocket stream subscriptions.
+    Validate WebSocket stream subscriptions (read-only endpoint — see #133).
 
-    **For LLM Agents**: Add/remove streams dynamically without restart.
+    **Streams are static-at-deploy-time**: set via the `BINANCE_STREAMS` env
+    var / k8s ConfigMap and require a pod restart. This endpoint no longer
+    claims to apply changes at runtime — it validates format only.
 
-    **Dry Run**: Set `validate_only: true` to test streams without applying.
+    **Dry Run**: Set `validate_only: true` to test streams without applying
+    (this is now the only supported mode; `validate_only: false` returns a
+    501-equivalent NOT_IMPLEMENTED envelope).
 
     Example: POST /api/v1/config/streams
     {
       "streams": ["btcusdt@trade", "ethusdt@ticker"],
       "changed_by": "llm_agent",
       "reason": "Focus on BTC and ETH",
-      "validate_only": false
+      "validate_only": true
     }
     """
     try:
@@ -118,17 +157,15 @@ async def update_streams(request: StreamsUpdate):
                 },
             )
 
+        # Per #133: no runtime mutation path exists to the separate
+        # BinanceWebSocketClient process — do not pretend otherwise.
         config_manager = get_config_manager()
-        config_manager.set_streams(request.streams, request.changed_by, request.reason)
-
-        return APIResponse(
-            success=True,
-            data=StreamsInfo(streams=request.streams, count=len(request.streams)),
-            metadata={
-                "message": "Streams updated",
-                "changed_by": request.changed_by,
-                "reason": request.reason,
-            },
+        current_streams = config_manager.get_streams()
+        return _read_only_response(
+            {"streams": current_streams, "count": len(current_streams)},
+            requested_streams=request.streams,
+            changed_by=request.changed_by,
+            reason=request.reason,
         )
     except Exception as e:
         logger.error(f"Error updating streams: {e}")
@@ -160,11 +197,15 @@ async def get_reconnection():
 @router.post("/reconnection", response_model=APIResponse)
 async def update_reconnection(request: ReconnectionUpdate):
     """
-    Update reconnection parameters.
+    Validate reconnection parameters (read-only endpoint — see #133).
 
-    **For LLM Agents**: Adjust reconnection behavior for reliability.
+    **Reconnection settings are static-at-deploy-time**: set via
+    `WEBSOCKET_RECONNECT_DELAY`/`_MAX_RECONNECT_ATTEMPTS`/`_BACKOFF_MULTIPLIER`
+    env vars / the k8s ConfigMap, and require a pod restart. This endpoint no
+    longer claims to apply changes at runtime.
 
-    **Dry Run**: Set `validate_only: true` to test parameters without applying.
+    **Dry Run**: Set `validate_only: true` to test parameters (the only
+    supported mode; `validate_only: false` returns NOT_IMPLEMENTED).
     """
     try:
         # If validate_only, return early without saving
@@ -183,27 +224,15 @@ async def update_reconnection(request: ReconnectionUpdate):
                 },
             )
 
+        # Per #133: no runtime mutation path exists — do not pretend otherwise.
         config_manager = get_config_manager()
-        config_manager.set_reconnection_config(
-            request.reconnect_delay,
-            request.max_reconnect_attempts,
-            request.backoff_multiplier,
-            request.changed_by,
-            request.reason,
-        )
-
-        return APIResponse(
-            success=True,
-            data=ReconnectionInfo(
-                reconnect_delay=request.reconnect_delay,
-                max_reconnect_attempts=request.max_reconnect_attempts,
-                backoff_multiplier=request.backoff_multiplier,
-            ),
-            metadata={
-                "message": "Reconnection config updated",
-                "changed_by": request.changed_by,
-                "reason": request.reason,
-            },
+        return _read_only_response(
+            config_manager.get_reconnection_config(),
+            requested_reconnect_delay=request.reconnect_delay,
+            requested_max_reconnect_attempts=request.max_reconnect_attempts,
+            requested_backoff_multiplier=request.backoff_multiplier,
+            changed_by=request.changed_by,
+            reason=request.reason,
         )
     except Exception as e:
         logger.error(f"Error updating reconnection config: {e}")
@@ -235,11 +264,15 @@ async def get_circuit_breaker():
 @router.post("/circuit-breaker", response_model=APIResponse)
 async def update_circuit_breaker(request: CircuitBreakerUpdate):
     """
-    Update circuit breaker parameters.
+    Validate circuit breaker parameters (read-only endpoint — see #133).
 
-    **For LLM Agents**: Adjust circuit breaker thresholds for reliability.
+    **Circuit breaker settings are static-at-deploy-time**: set via
+    `CIRCUIT_BREAKER_FAILURE_THRESHOLD`/`_RECOVERY_TIMEOUT`/
+    `_HALF_OPEN_MAX_CALLS` env vars / the k8s ConfigMap, and require a pod
+    restart. This endpoint no longer claims to apply changes at runtime.
 
-    **Dry Run**: Set `validate_only: true` to test parameters without applying.
+    **Dry Run**: Set `validate_only: true` to test parameters (the only
+    supported mode; `validate_only: false` returns NOT_IMPLEMENTED).
     """
     try:
         # If validate_only, return early without saving
@@ -258,27 +291,15 @@ async def update_circuit_breaker(request: CircuitBreakerUpdate):
                 },
             )
 
+        # Per #133: no runtime mutation path exists — do not pretend otherwise.
         config_manager = get_config_manager()
-        config_manager.set_circuit_breaker_config(
-            request.failure_threshold,
-            request.recovery_timeout,
-            request.half_open_max_calls,
-            request.changed_by,
-            request.reason,
-        )
-
-        return APIResponse(
-            success=True,
-            data=CircuitBreakerInfo(
-                failure_threshold=request.failure_threshold,
-                recovery_timeout=request.recovery_timeout,
-                half_open_max_calls=request.half_open_max_calls,
-            ),
-            metadata={
-                "message": "Circuit breaker config updated",
-                "changed_by": request.changed_by,
-                "reason": request.reason,
-            },
+        return _read_only_response(
+            config_manager.get_circuit_breaker_config(),
+            requested_failure_threshold=request.failure_threshold,
+            requested_recovery_timeout=request.recovery_timeout,
+            requested_half_open_max_calls=request.half_open_max_calls,
+            changed_by=request.changed_by,
+            reason=request.reason,
         )
     except Exception as e:
         logger.error(f"Error updating circuit breaker config: {e}")

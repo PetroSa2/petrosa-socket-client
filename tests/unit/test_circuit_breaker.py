@@ -6,6 +6,7 @@ async operations, and performance characteristics.
 """
 
 import asyncio
+import os
 import time
 
 import pytest
@@ -297,8 +298,79 @@ class TestAsyncCircuitBreaker:
         assert metrics["failure_count"] == 0
         assert metrics["failure_threshold"] == 5
         assert metrics["recovery_timeout"] == 60
+        assert metrics["half_open_max_calls"] == 3
+        assert metrics["half_open_calls"] == 0
         assert metrics["last_failure_time"] == 0
         assert "time_since_last_failure" in metrics
+
+    @pytest.mark.asyncio
+    async def test_half_open_max_calls_limits_trial_calls(self) -> None:
+        """Per #133: half_open_max_calls must actually be enforced.
+
+        Once the circuit is HALF_OPEN, at most `half_open_max_calls` trial
+        calls are admitted concurrently; further concurrent calls are
+        rejected with CircuitBreakerOpenError instead of being let through.
+        """
+        cb = AsyncCircuitBreaker(
+            failure_threshold=1,
+            recovery_timeout=0.1,
+            name="test-half-open-limit",
+            half_open_max_calls=2,
+        )
+
+        async def failing_function():
+            raise Exception("Test error")
+
+        with pytest.raises(Exception):
+            await cb.call(failing_function)
+        assert cb.state == CircuitState.OPEN
+
+        await asyncio.sleep(0.15)
+
+        async def slow_success():
+            await asyncio.sleep(0.2)
+            return "ok"
+
+        # 5 concurrent calls arrive right as the circuit goes HALF_OPEN.
+        # Only half_open_max_calls=2 should be admitted as trials; the rest
+        # must be rejected immediately with CircuitBreakerOpenError.
+        results = await asyncio.gather(
+            *[cb.call(slow_success) for _ in range(5)], return_exceptions=True
+        )
+
+        admitted = [r for r in results if r == "ok"]
+        rejected = [r for r in results if isinstance(r, CircuitBreakerOpenError)]
+
+        assert len(admitted) == 2
+        assert len(rejected) == 3
+        assert all("trial-call limit" in str(r) for r in rejected)
+
+    @pytest.mark.asyncio
+    async def test_half_open_calls_reset_on_close(self) -> None:
+        """half_open_calls resets to 0 when the circuit closes again."""
+        cb = AsyncCircuitBreaker(
+            failure_threshold=1,
+            recovery_timeout=0.1,
+            name="test-half-open-reset",
+            half_open_max_calls=3,
+        )
+
+        async def failing_function():
+            raise Exception("Test error")
+
+        async def successful_function():
+            return "ok"
+
+        with pytest.raises(Exception):
+            await cb.call(failing_function)
+        assert cb.state == CircuitState.OPEN
+
+        await asyncio.sleep(0.15)
+
+        result = await cb.call(successful_function)
+        assert result == "ok"
+        assert cb.state == CircuitState.CLOSED
+        assert cb.half_open_calls == 0
 
     @pytest.mark.asyncio
     async def test_concurrent_calls(self) -> None:
@@ -436,23 +508,83 @@ class TestGlobalCircuitBreakers:
     """Test cases for global circuit breaker instances."""
 
     def test_websocket_circuit_breaker_configuration(self) -> None:
-        """Test websocket circuit breaker configuration."""
+        """Test websocket circuit breaker configuration (defaults)."""
         assert websocket_circuit_breaker.name == "websocket"
         assert websocket_circuit_breaker.failure_threshold == 5
         assert websocket_circuit_breaker.recovery_timeout == 60
+        assert websocket_circuit_breaker.half_open_max_calls == 3
         assert websocket_circuit_breaker.expected_exception is Exception
 
     def test_nats_circuit_breaker_configuration(self) -> None:
-        """Test NATS circuit breaker configuration."""
+        """Test NATS circuit breaker configuration (defaults)."""
         assert nats_circuit_breaker.name == "nats"
         assert nats_circuit_breaker.failure_threshold == 3
         assert nats_circuit_breaker.recovery_timeout == 30
+        assert nats_circuit_breaker.half_open_max_calls == 3
         assert nats_circuit_breaker.expected_exception is Exception
 
     def test_global_instances_are_different(self) -> None:
         """Test that global instances are separate."""
         assert websocket_circuit_breaker is not nats_circuit_breaker
         assert websocket_circuit_breaker.name != nats_circuit_breaker.name
+
+    def test_global_instances_wired_to_constants_env_vars(self) -> None:
+        """Per #133 AC2/AC3: changing the env vars must change the global
+
+        circuit breakers' actual thresholds — not just the value read into
+        `constants`, but the object `socket_client.core.client` calls
+        `.call()` on. Runs in a fresh subprocess (rather than
+        `importlib.reload` in-process) to avoid polluting this test
+        session's module/class identities (reload rebinds `CircuitState`/
+        `AsyncCircuitBreaker` in place, which breaks `is`/`==` checks in
+        other tests that imported the pre-reload classes).
+        """
+        import json
+        import subprocess
+        import sys
+
+        env_overrides = {
+            "CIRCUIT_BREAKER_FAILURE_THRESHOLD": "17",
+            "CIRCUIT_BREAKER_RECOVERY_TIMEOUT": "99",
+            "CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS": "7",
+            "NATS_CIRCUIT_BREAKER_FAILURE_THRESHOLD": "11",
+            "NATS_CIRCUIT_BREAKER_RECOVERY_TIMEOUT": "44",
+            "NATS_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS": "9",
+        }
+        child_env = {**os.environ, **env_overrides}
+        snippet = (
+            "import json\n"
+            "from socket_client.utils.circuit_breaker import (\n"
+            "    websocket_circuit_breaker, nats_circuit_breaker,\n"
+            ")\n"
+            "print(json.dumps({\n"
+            "    'ws_failure_threshold': websocket_circuit_breaker.failure_threshold,\n"
+            "    'ws_recovery_timeout': websocket_circuit_breaker.recovery_timeout,\n"
+            "    'ws_half_open_max_calls': websocket_circuit_breaker.half_open_max_calls,\n"
+            "    'nats_failure_threshold': nats_circuit_breaker.failure_threshold,\n"
+            "    'nats_recovery_timeout': nats_circuit_breaker.recovery_timeout,\n"
+            "    'nats_half_open_max_calls': nats_circuit_breaker.half_open_max_calls,\n"
+            "}))\n"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", snippet],
+            env=child_env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True,
+        )
+        # structlog emits init-log lines to stdout before our json.dumps
+        # print; the JSON payload is always the last line.
+        last_line = result.stdout.strip().splitlines()[-1]
+        values = json.loads(last_line)
+
+        assert values["ws_failure_threshold"] == 17
+        assert values["ws_recovery_timeout"] == 99
+        assert values["ws_half_open_max_calls"] == 7
+        assert values["nats_failure_threshold"] == 11
+        assert values["nats_recovery_timeout"] == 44
+        assert values["nats_half_open_max_calls"] == 9
 
 
 @pytest.mark.unit

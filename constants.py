@@ -74,7 +74,22 @@ CIRCUIT_BREAKER_FAILURE_THRESHOLD = int(
 CIRCUIT_BREAKER_RECOVERY_TIMEOUT = int(
     os.getenv("CIRCUIT_BREAKER_RECOVERY_TIMEOUT", "60")
 )
+CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS = int(
+    os.getenv("CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS", "3")
+)
 CIRCUIT_BREAKER_EXPECTED_EXCEPTION = Exception
+
+# NATS circuit breaker uses its own (smaller) defaults — NATS reconnects are
+# cheaper/faster than Binance WS reconnects, so it trips and recovers sooner.
+NATS_CIRCUIT_BREAKER_FAILURE_THRESHOLD = int(
+    os.getenv("NATS_CIRCUIT_BREAKER_FAILURE_THRESHOLD", "3")
+)
+NATS_CIRCUIT_BREAKER_RECOVERY_TIMEOUT = int(
+    os.getenv("NATS_CIRCUIT_BREAKER_RECOVERY_TIMEOUT", "30")
+)
+NATS_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS = int(
+    os.getenv("NATS_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS", "3")
+)
 
 # Health check settings
 HEALTH_CHECK_INTERVAL = int(os.getenv("HEALTH_CHECK_INTERVAL", "30"))
