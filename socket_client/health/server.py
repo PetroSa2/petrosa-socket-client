@@ -7,7 +7,7 @@ and service monitoring.
 
 import time
 from datetime import datetime
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from aiohttp import web
 from structlog import get_logger
@@ -164,40 +164,3 @@ class HealthServer:
                 {"error": str(e)},
                 status=500,
             )
-
-    def _get_memory_usage(self) -> float:
-        """Get current memory usage in MB."""
-        try:
-            import psutil
-
-            process = psutil.Process()
-            memory_info = process.memory_info()
-            return cast(float, memory_info.rss / 1024 / 1024)  # Convert to MB
-        except ImportError:
-            return 0.0
-        except Exception:
-            return 0.0
-
-    def _get_cpu_usage(self) -> float:
-        """Get current CPU usage percentage."""
-        try:
-            import psutil
-
-            process = psutil.Process()
-            return process.cpu_percent()
-        except ImportError:
-            return 0.0
-        except Exception:
-            return 0.0
-
-    def update_websocket_metrics(self, metrics: dict) -> None:
-        """Update WebSocket metrics (called by main service)."""
-        # This method would be called by the main service to update
-        # the metrics with real-time data
-        pass
-
-    def update_nats_metrics(self, metrics: dict) -> None:
-        """Update NATS metrics (called by main service)."""
-        # This method would be called by the main service to update
-        # the metrics with real-time data
-        pass

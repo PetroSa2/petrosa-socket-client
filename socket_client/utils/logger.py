@@ -7,7 +7,7 @@ both JSON and text formats, and integration with OpenTelemetry.
 
 import logging
 import sys
-from typing import Any, Optional, cast
+from typing import Optional, cast
 
 import structlog
 from structlog.stdlib import LoggerFactory
@@ -86,28 +86,3 @@ def get_logger(name: Optional[str] = None) -> structlog.BoundLogger:
         Logger instance
     """
     return cast(structlog.BoundLogger, structlog.get_logger(name))
-
-
-class LoggerMixin:
-    """Mixin class to add logging capabilities to other classes."""
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize the mixin."""
-        super().__init__(*args, **kwargs)
-        self.logger = get_logger(self.__class__.__name__)
-
-    def log_info(self, message: str, **kwargs: Any) -> None:
-        """Log an info message."""
-        self.logger.info(message, **kwargs)
-
-    def log_error(self, message: str, **kwargs: Any) -> None:
-        """Log an error message."""
-        self.logger.error(message, **kwargs)
-
-    def log_warning(self, message: str, **kwargs: Any) -> None:
-        """Log a warning message."""
-        self.logger.warning(message, **kwargs)
-
-    def log_debug(self, message: str, **kwargs: Any) -> None:
-        """Log a debug message."""
-        self.logger.debug(message, **kwargs)
