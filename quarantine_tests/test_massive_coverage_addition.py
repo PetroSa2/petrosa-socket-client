@@ -11,7 +11,6 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from aiohttp import web
-from fastapi.testclient import TestClient
 
 from socket_client.api.main import create_app
 from socket_client.core.client import BinanceWebSocketClient

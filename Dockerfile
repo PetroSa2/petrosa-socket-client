@@ -114,7 +114,7 @@ FROM production AS development
 USER root
 
 # Install development dependencies
-RUN pip install pytest pytest-cov flake8 mypy black isort ipython jupyter
+RUN pip install pytest pytest-cov ruff mypy ipython jupyter
 
 # Install additional debugging tools
 RUN apt-get update && apt-get install -y \

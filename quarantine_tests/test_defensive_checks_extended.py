@@ -3,9 +3,6 @@ Extended defensive checks and edge case tests.
 Builds on existing test_client_defensive_checks.py.
 """
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 
 from socket_client.core.client import BinanceWebSocketClient

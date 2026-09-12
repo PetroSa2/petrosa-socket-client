@@ -72,7 +72,7 @@ class TestClientStartMethodPaths:
 
             try:
                 await asyncio.wait_for(start_task, timeout=1.0)
-            except:
+            except Exception:
                 start_task.cancel()
 
             # Should have created tasks

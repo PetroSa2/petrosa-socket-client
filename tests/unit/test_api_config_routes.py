@@ -4,7 +4,7 @@ Tests for the configuration API routes.
 Tests the FastAPI configuration endpoints for streams, reconnection, and circuit breaker.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,7 +12,6 @@ from fastapi.testclient import TestClient
 from socket_client.api.main import create_app
 from socket_client.services.config_manager import (
     ConfigManager,
-    get_config_manager,
     set_config_manager,
 )
 

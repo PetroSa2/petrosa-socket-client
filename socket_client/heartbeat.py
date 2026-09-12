@@ -4,7 +4,6 @@ Publishes a heartbeat to NATS every 30 seconds.
 """
 
 import asyncio
-import json
 import logging
 import os
 import time

@@ -3,7 +3,7 @@ Extended tests for API routes to boost coverage from 77.54% to 90%+.
 Targets error handling and edge cases.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient

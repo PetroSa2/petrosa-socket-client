@@ -5,11 +5,8 @@ Provides endpoints for managing streams, reconnection, and circuit breaker setti
 """
 
 import logging
-import os
-from typing import Any
 
-import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from socket_client.api.models.requests import (
     CircuitBreakerUpdate,
@@ -380,7 +377,6 @@ async def validate_config(request: ConfigValidationRequest):
         elif request.config_type == "reconnection":
             reconnect_delay = request.parameters.get("reconnect_delay")
             max_reconnect_attempts = request.parameters.get("max_reconnect_attempts")
-            backoff_multiplier = request.parameters.get("backoff_multiplier")
 
             if reconnect_delay is not None:
                 if not isinstance(reconnect_delay, int):

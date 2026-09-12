@@ -4,8 +4,6 @@ Targets remaining uncovered lines in models/message.py.
 """
 
 import json
-from datetime import datetime
-from unittest.mock import patch
 
 import pytest
 

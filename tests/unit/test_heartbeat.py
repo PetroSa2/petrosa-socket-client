@@ -1,11 +1,9 @@
 import asyncio
 import json
 import os
-import time
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
-from pydantic import Field
 
 from socket_client.heartbeat import HeartbeatMessage, HeartbeatPublisher
 

@@ -2,7 +2,6 @@
 Additional tests for health_server.py to boost coverage.
 """
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

@@ -1,7 +1,5 @@
 """Tests for the logger utilities module."""
 
-import pytest
-
 from socket_client.utils.logger import LoggerMixin, get_logger, setup_logging
 
 

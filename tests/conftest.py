@@ -20,11 +20,8 @@ def pytest_configure(config):
 Pytest configuration and fixtures for the Socket Client service.
 """
 
-import asyncio
 import os
 from unittest.mock import AsyncMock, patch
-
-import pytest
 
 from socket_client.core.client import BinanceWebSocketClient
 

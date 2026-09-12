@@ -2,9 +2,6 @@
 Batch 4: Comprehensive test additions targeting remaining gaps.
 """
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 
 from socket_client.core.client import BinanceWebSocketClient
