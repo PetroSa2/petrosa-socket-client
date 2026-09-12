@@ -29,8 +29,13 @@ def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
     app = FastAPI(
         title="Petrosa Socket Client Configuration API",
-        description="Runtime configuration for WebSocket streams, reconnection, and circuit breaker",
-        version="1.0.0",
+        description=(
+            "Read-only inspection + validation for WebSocket streams, "
+            "reconnection, and circuit breaker settings. Per #133: these "
+            "settings are static-at-deploy-time (env vars / k8s ConfigMap); "
+            "the API cannot mutate the running WebSocket client process."
+        ),
+        version="1.1.0",
         lifespan=lifespan,
     )
 

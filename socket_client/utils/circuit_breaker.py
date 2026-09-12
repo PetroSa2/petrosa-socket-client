@@ -13,6 +13,8 @@ from typing import Any, TypeVar, cast
 
 from structlog import get_logger
 
+import constants
+
 logger = get_logger(__name__)
 
 T = TypeVar("T")
@@ -35,6 +37,7 @@ class AsyncCircuitBreaker:
         recovery_timeout: int = 60,
         expected_exception: type = Exception,
         name: str = "default",
+        half_open_max_calls: int = 3,
     ) -> None:
         """
         Initialize the circuit breaker.
@@ -44,15 +47,21 @@ class AsyncCircuitBreaker:
             recovery_timeout: Time in seconds before attempting recovery
             expected_exception: Exception type to count as failures
             name: Circuit breaker name for logging
+            half_open_max_calls: Max number of trial calls admitted while the
+                circuit is HALF_OPEN. Additional calls are rejected with
+                CircuitBreakerOpenError until the trial batch resolves the
+                circuit back to CLOSED (success) or OPEN (failure).
         """
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.expected_exception = expected_exception
         self.name = name
+        self.half_open_max_calls = half_open_max_calls
 
         self.state = CircuitState.CLOSED
         self.failure_count = 0
         self.last_failure_time: float = 0.0
+        self.half_open_calls = 0
         self._lock = asyncio.Lock()
 
         logger.info(
@@ -60,6 +69,7 @@ class AsyncCircuitBreaker:
             name=name,
             failure_threshold=failure_threshold,
             recovery_timeout=recovery_timeout,
+            half_open_max_calls=half_open_max_calls,
         )
 
     async def call(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
@@ -82,6 +92,7 @@ class AsyncCircuitBreaker:
             if self.state == CircuitState.OPEN:
                 if time.time() - self.last_failure_time >= self.recovery_timeout:
                     self.state = CircuitState.HALF_OPEN
+                    self.half_open_calls = 0
                     logger.info(
                         "Circuit breaker transitioning to half-open", name=self.name
                     )
@@ -89,6 +100,14 @@ class AsyncCircuitBreaker:
                     raise CircuitBreakerOpenError(
                         f"Circuit breaker '{self.name}' is open"
                     )
+
+            if self.state == CircuitState.HALF_OPEN:
+                if self.half_open_calls >= self.half_open_max_calls:
+                    raise CircuitBreakerOpenError(
+                        f"Circuit breaker '{self.name}' is half-open and at its "
+                        f"trial-call limit ({self.half_open_max_calls})"
+                    )
+                self.half_open_calls += 1
 
         try:
             if asyncio.iscoroutinefunction(func):
@@ -108,6 +127,7 @@ class AsyncCircuitBreaker:
         async with self._lock:
             if self.state == CircuitState.HALF_OPEN:
                 self.state = CircuitState.CLOSED
+                self.half_open_calls = 0
                 logger.info(
                     "Circuit breaker closed after successful execution", name=self.name
                 )
@@ -126,7 +146,14 @@ class AsyncCircuitBreaker:
                 threshold=self.failure_threshold,
             )
 
-            if self.failure_count >= self.failure_threshold:
+            if self.state == CircuitState.HALF_OPEN:
+                self.state = CircuitState.OPEN
+                self.half_open_calls = 0
+                logger.error(
+                    "Circuit breaker reopened after half-open trial failure",
+                    name=self.name,
+                )
+            elif self.failure_count >= self.failure_threshold:
                 self.state = CircuitState.OPEN
                 logger.error(
                     "Circuit breaker opened due to failure threshold",
@@ -146,6 +173,8 @@ class AsyncCircuitBreaker:
             "failure_count": self.failure_count,
             "failure_threshold": self.failure_threshold,
             "recovery_timeout": self.recovery_timeout,
+            "half_open_max_calls": self.half_open_max_calls,
+            "half_open_calls": self.half_open_calls,
             "last_failure_time": self.last_failure_time,
             "time_since_last_failure": time.time() - self.last_failure_time,
         }
@@ -157,14 +186,24 @@ class CircuitBreakerOpenError(Exception):
     pass
 
 
-# Global circuit breaker instances
+# Global circuit breaker instances.
+#
+# Per #133: these MUST read from `constants` (env-var backed) rather than
+# hardcoding literals — operators tune failure_threshold/recovery_timeout via
+# the k8s ConfigMap (CIRCUIT_BREAKER_FAILURE_THRESHOLD/_RECOVERY_TIMEOUT/
+# _HALF_OPEN_MAX_CALLS) and expect it to take effect.
 websocket_circuit_breaker = AsyncCircuitBreaker(
-    failure_threshold=5,
-    recovery_timeout=60,
+    failure_threshold=constants.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+    recovery_timeout=constants.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     expected_exception=Exception,
     name="websocket",
+    half_open_max_calls=constants.CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS,
 )
 
 nats_circuit_breaker = AsyncCircuitBreaker(
-    failure_threshold=3, recovery_timeout=30, expected_exception=Exception, name="nats"
+    failure_threshold=constants.NATS_CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+    recovery_timeout=constants.NATS_CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
+    expected_exception=Exception,
+    name="nats",
+    half_open_max_calls=constants.NATS_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS,
 )

@@ -15,7 +15,20 @@ _config_manager: Optional["ConfigManager"] = None
 
 
 class ConfigManager:
-    """Manages configuration for Socket Client service."""
+    """Manages configuration for Socket Client service.
+
+    Per #133: this is a **read-only snapshot** of the env-var-backed
+    configuration loaded at process start. There is no persistence layer
+    (no MongoDB, no shared store) and no IPC path to the separately-deployed
+    ``BinanceWebSocketClient`` process (see ``socket_client/main.py`` vs
+    ``socket_client/api/main.py``), so mutating this in-memory object cannot
+    change running WebSocket-client behavior. The former ``set_streams`` /
+    ``set_reconnection_config`` / ``set_circuit_breaker_config`` mutators
+    were removed because they silently no-opped past a log line — callers
+    believed they were changing runtime behavior and were not. Configuration
+    is changed by editing the env vars / k8s ConfigMap and restarting the
+    pod.
+    """
 
     def __init__(self):
         """Initialize configuration manager."""
@@ -51,36 +64,6 @@ class ConfigManager:
         """Get current stream subscriptions."""
         return self._streams.copy()
 
-    def set_streams(
-        self, streams: list[str], changed_by: str, reason: Optional[str] = None
-    ) -> None:
-        """Set stream subscriptions."""
-        self._streams = streams
-        logger.info(f"Streams updated by {changed_by}: {streams} (reason: {reason})")
-        # TODO: Persist to MongoDB and update WebSocket client
-
-    def add_stream(
-        self, stream: str, changed_by: str, reason: Optional[str] = None
-    ) -> None:
-        """Add a single stream subscription."""
-        if stream not in self._streams:
-            self._streams.append(stream)
-            logger.info(f"Stream added by {changed_by}: {stream} (reason: {reason})")
-
-    def remove_stream(
-        self, stream: str, changed_by: str, reason: Optional[str] = None
-    ) -> None:
-        """Remove a single stream subscription."""
-        if stream in self._streams:
-            self._streams.remove(stream)
-            logger.info(f"Stream removed by {changed_by}: {stream} (reason: {reason})")
-
-    def update_streams(
-        self, streams: list[str], changed_by: str, reason: Optional[str] = None
-    ) -> None:
-        """Update multiple stream subscriptions (alias for set_streams)."""
-        self.set_streams(streams, changed_by, reason)
-
     def get_reconnection_config(self) -> dict:
         """Get reconnection configuration."""
         return {
@@ -89,21 +72,6 @@ class ConfigManager:
             "backoff_multiplier": self._backoff_multiplier,
         }
 
-    def set_reconnection_config(
-        self,
-        reconnect_delay: int,
-        max_reconnect_attempts: int,
-        backoff_multiplier: float,
-        changed_by: str,
-        reason: Optional[str] = None,
-    ) -> None:
-        """Set reconnection configuration."""
-        self._reconnect_delay = reconnect_delay
-        self._max_reconnect_attempts = max_reconnect_attempts
-        self._backoff_multiplier = backoff_multiplier
-        logger.info(f"Reconnection config updated by {changed_by} (reason: {reason})")
-        # TODO: Persist to MongoDB and update WebSocket client
-
     def get_circuit_breaker_config(self) -> dict:
         """Get circuit breaker configuration."""
         return {
@@ -111,23 +79,6 @@ class ConfigManager:
             "recovery_timeout": self._recovery_timeout,
             "half_open_max_calls": self._half_open_max_calls,
         }
-
-    def set_circuit_breaker_config(
-        self,
-        failure_threshold: int,
-        recovery_timeout: int,
-        half_open_max_calls: int,
-        changed_by: str,
-        reason: Optional[str] = None,
-    ) -> None:
-        """Set circuit breaker configuration."""
-        self._failure_threshold = failure_threshold
-        self._recovery_timeout = recovery_timeout
-        self._half_open_max_calls = half_open_max_calls
-        logger.info(
-            f"Circuit breaker config updated by {changed_by} (reason: {reason})"
-        )
-        # TODO: Persist to MongoDB and update circuit breaker
 
 
 def get_config_manager() -> ConfigManager:

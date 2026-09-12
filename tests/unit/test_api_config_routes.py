@@ -61,8 +61,15 @@ class TestStreamsEndpoints:
         assert data["data"]["count"] == 2
         assert "btcusdt@trade" in data["data"]["streams"]
 
-    def test_update_streams_success(self, client, mock_config_manager):
-        """Test POST /api/v1/config/streams with valid streams."""
+    def test_update_streams_non_validate_only_is_read_only(
+        self, client, mock_config_manager
+    ):
+        """Per #133: POST with validate_only=False no longer mutates anything.
+
+        The config API and the running BinanceWebSocketClient are separate
+        processes with no persistence layer between them, so this now
+        returns a clear NOT_IMPLEMENTED envelope instead of a fake success.
+        """
         request_data = {
             "streams": ["btcusdt@trade", "ethusdt@ticker"],
             "changed_by": "test_user",
@@ -72,9 +79,10 @@ class TestStreamsEndpoints:
         response = client.post("/api/v1/config/streams", json=request_data)
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] is True
-        assert data["data"]["count"] == 2
-        mock_config_manager.set_streams.assert_called_once()
+        assert data["success"] is False
+        assert data["error"]["code"] == "NOT_IMPLEMENTED"
+        assert "read-only" in data["error"]["message"].lower()
+        assert data["metadata"]["requested_streams"] == request_data["streams"]
 
     def test_update_streams_validate_only(self, client, mock_config_manager):
         """Test POST /api/v1/config/streams with validate_only=true."""
@@ -90,8 +98,6 @@ class TestStreamsEndpoints:
         assert data["success"] is True
         assert data["metadata"]["validation"] == "passed"
         assert data["data"] is None
-        # Should not call set_streams when validate_only=True
-        mock_config_manager.set_streams.assert_not_called()
 
     def test_update_streams_invalid_format(self, client, mock_config_manager):
         """Test POST /api/v1/config/streams with invalid stream format."""
@@ -135,8 +141,10 @@ class TestReconnectionEndpoints:
         assert data["data"]["reconnect_delay"] == 5
         assert data["data"]["max_reconnect_attempts"] == 10
 
-    def test_update_reconnection_success(self, client, mock_config_manager):
-        """Test POST /api/v1/config/reconnection with valid parameters."""
+    def test_update_reconnection_non_validate_only_is_read_only(
+        self, client, mock_config_manager
+    ):
+        """Per #133: validate_only=False no longer mutates anything."""
         request_data = {
             "reconnect_delay": 10,
             "max_reconnect_attempts": 20,
@@ -148,9 +156,9 @@ class TestReconnectionEndpoints:
         response = client.post("/api/v1/config/reconnection", json=request_data)
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] is True
-        assert data["data"]["reconnect_delay"] == 10
-        mock_config_manager.set_reconnection_config.assert_called_once()
+        assert data["success"] is False
+        assert data["error"]["code"] == "NOT_IMPLEMENTED"
+        assert data["metadata"]["requested_reconnect_delay"] == 10
 
     def test_update_reconnection_validate_only(self, client, mock_config_manager):
         """Test POST /api/v1/config/reconnection with validate_only=true."""
@@ -167,7 +175,6 @@ class TestReconnectionEndpoints:
         assert data["success"] is True
         assert data["metadata"]["validation"] == "passed"
         assert data["data"] is None
-        mock_config_manager.set_reconnection_config.assert_not_called()
 
 
 class TestCircuitBreakerEndpoints:
@@ -182,8 +189,10 @@ class TestCircuitBreakerEndpoints:
         assert data["data"]["failure_threshold"] == 5
         assert data["data"]["recovery_timeout"] == 60
 
-    def test_update_circuit_breaker_success(self, client, mock_config_manager):
-        """Test POST /api/v1/config/circuit-breaker with valid parameters."""
+    def test_update_circuit_breaker_non_validate_only_is_read_only(
+        self, client, mock_config_manager
+    ):
+        """Per #133: validate_only=False no longer mutates anything."""
         request_data = {
             "failure_threshold": 10,
             "recovery_timeout": 120,
@@ -195,9 +204,9 @@ class TestCircuitBreakerEndpoints:
         response = client.post("/api/v1/config/circuit-breaker", json=request_data)
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] is True
-        assert data["data"]["failure_threshold"] == 10
-        mock_config_manager.set_circuit_breaker_config.assert_called_once()
+        assert data["success"] is False
+        assert data["error"]["code"] == "NOT_IMPLEMENTED"
+        assert data["metadata"]["requested_failure_threshold"] == 10
 
     def test_update_circuit_breaker_validate_only(self, client, mock_config_manager):
         """Test POST /api/v1/config/circuit-breaker with validate_only=true."""
@@ -214,7 +223,6 @@ class TestCircuitBreakerEndpoints:
         assert data["success"] is True
         assert data["metadata"]["validation"] == "passed"
         assert data["data"] is None
-        mock_config_manager.set_circuit_breaker_config.assert_not_called()
 
 
 class TestValidateEndpoint:
