@@ -1,6 +1,6 @@
 """Tests for the logger utilities module."""
 
-from socket_client.utils.logger import LoggerMixin, get_logger, setup_logging
+from socket_client.utils.logger import get_logger, setup_logging
 
 
 def test_setup_logging_json_format() -> None:
@@ -29,55 +29,3 @@ def test_get_logger_with_name() -> None:
     logger = get_logger("test_logger")
     assert logger is not None
     logger.info("test with name")
-
-
-def test_logger_mixin() -> None:
-    """Test LoggerMixin functionality."""
-
-    class TestClass(LoggerMixin):
-        """Test class using LoggerMixin."""
-
-        def __init__(self) -> None:
-            """Initialize test class."""
-            super().__init__()
-
-    obj = TestClass()
-    assert hasattr(obj, "logger")
-    assert obj.logger is not None
-
-
-def test_logger_mixin_log_methods() -> None:
-    """Test LoggerMixin log methods."""
-
-    class TestClass(LoggerMixin):
-        """Test class using LoggerMixin."""
-
-        def __init__(self) -> None:
-            """Initialize test class."""
-            super().__init__()
-
-    obj = TestClass()
-
-    # Test all log methods
-    assert obj is not None
-    obj.log_info("info message", key="value")
-    obj.log_error("error message", error_code=500)
-    obj.log_warning("warning message", warning_type="test")
-    obj.log_debug("debug message", debug_data={"test": "data"})
-
-
-def test_logger_mixin_with_kwargs() -> None:
-    """Test LoggerMixin with various kwargs."""
-
-    class TestClass(LoggerMixin):
-        """Test class using LoggerMixin."""
-
-        def __init__(self, custom_arg: str = "default") -> None:
-            """Initialize with custom argument."""
-            super().__init__()
-            self.custom_arg = custom_arg
-
-    obj = TestClass(custom_arg="custom")
-    assert obj.custom_arg == "custom"
-    assert obj.logger is not None
-    obj.log_info("test")

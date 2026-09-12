@@ -159,24 +159,6 @@ class DepthMessage(WebSocketMessage):
         }
 
 
-class HealthMessage(BaseModel):
-    """Model for health check messages."""
-
-    status: str = Field(..., description="Health status")
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Health check timestamp"
-    )
-    service: str = Field("socket-client", description="Service name")
-    version: str = Field("1.0.0", description="Service version")
-    uptime: Optional[float] = Field(None, description="Service uptime in seconds")
-    metrics: Optional[dict[str, Any]] = Field(None, description="Service metrics")
-
-    class Config:
-        """Pydantic configuration."""
-
-        json_encoders = {datetime: lambda v: v.isoformat() + "Z"}
-
-
 def create_message(
     stream: str, data: dict[str, Any], message_id: Optional[str] = None
 ) -> WebSocketMessage:
