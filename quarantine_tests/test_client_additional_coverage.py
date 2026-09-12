@@ -5,7 +5,7 @@ Focuses on error paths, edge cases, and scenarios not covered by existing compre
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -118,8 +118,6 @@ class TestClientStatistics:
                 client.message_queue.put_nowait({"msg": i})
             except asyncio.QueueFull:
                 break
-
-        initial_dropped = client.dropped_messages
 
         # Try to add more - should be dropped
         await client._handle_websocket_message('{"test": "overflow"}')

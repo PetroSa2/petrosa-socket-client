@@ -3,13 +3,11 @@ Final comprehensive test push toward 90% coverage.
 Extensive tests across all modules.
 """
 
-import asyncio
 import json
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import MagicMock
 
 import pytest
-from aiohttp import web
 
 from socket_client.core.client import BinanceWebSocketClient
 from socket_client.health.server import HealthServer

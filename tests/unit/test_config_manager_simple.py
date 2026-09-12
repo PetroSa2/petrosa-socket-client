@@ -5,8 +5,6 @@ Simple tests for config_manager to boost coverage.
 import os
 from unittest.mock import MagicMock
 
-import pytest
-
 from socket_client.services.config_manager import (
     ConfigManager,
     get_config_manager,
@@ -50,7 +48,6 @@ class TestConfigManagerInit:
         }
 
         # Create a mock environment
-        import os
 
         original_environ = os.environ.copy()
         os.environ.update(env_vars)
@@ -68,7 +65,6 @@ class TestConfigManagerInit:
     def test_init_with_defaults(self):
         """Test initialization with default values."""
         # Ensure env vars are clear for this test
-        import os
 
         original_environ = os.environ.copy()
         for key in ["BINANCE_STREAMS", "WEBSOCKET_RECONNECT_DELAY"]:

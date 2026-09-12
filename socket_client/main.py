@@ -29,8 +29,6 @@ __version__ = "1.1.0"
 # Note: OpenTelemetry is initialized inside the run() function to ensure
 # it happens after logging configuration.
 
-import structlog  # noqa: E402
-import typer  # noqa: E402
 
 import constants  # noqa: E402
 from socket_client.core.client import BinanceWebSocketClient  # noqa: E402

@@ -4,11 +4,7 @@ Tests actual HTTP endpoint behavior.
 """
 
 import asyncio
-import time
-from unittest.mock import MagicMock
 
-import pytest
-from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 
 from socket_client.health.server import HealthServer

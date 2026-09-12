@@ -3,10 +3,8 @@ Comprehensive test additions targeting uncovered code paths.
 Systematically covers uncovered lines in key modules.
 """
 
-import asyncio
 import json
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 

@@ -2,10 +2,6 @@
 Tests for socket_client/utils/logger.py to boost from current to 100%.
 """
 
-import logging
-import os
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from socket_client.utils.logger import get_logger, setup_logging

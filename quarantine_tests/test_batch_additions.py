@@ -3,16 +3,12 @@ Focused batch of tests to systematically boost coverage.
 Targets specific uncovered functionality in multiple modules.
 """
 
-import asyncio
 import time
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-from aiohttp import web
-from fastapi.testclient import TestClient
 
-from socket_client.api.main import create_app
 from socket_client.core.client import BinanceWebSocketClient
 from socket_client.health.server import HealthServer
 from socket_client.models.message import WebSocketMessage

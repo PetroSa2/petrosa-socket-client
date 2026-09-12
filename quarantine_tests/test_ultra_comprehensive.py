@@ -6,10 +6,8 @@ Exhaustive tests for all modules to reach 90% target.
 import asyncio
 import time
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
-from aiohttp import web
 
 from socket_client.core.client import BinanceWebSocketClient
 from socket_client.health.server import HealthServer
