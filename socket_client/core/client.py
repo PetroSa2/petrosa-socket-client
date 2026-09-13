@@ -38,30 +38,41 @@ except ImportError:
 # OpenTelemetry metrics — instruments emit through the OTLP push pipeline wired
 # by setup_telemetry() in main.py. get_meter() returns a proxy meter before the
 # MeterProvider is installed, so module-level creation is safe.
+#
+# Naming convention (per #132): all instruments use the `petrosa_socket_client_`
+# prefix so they match the names already provisioned in the Grafana Cloud alert
+# rules (observability/alert-rules/socket-client-alerts.yaml in petrosa_k8s,
+# which follows the ecosystem-wide `petrosa_<service>_<subject>` convention).
+# This is a rename of the pre-existing `socket_client_*` instruments, not a
+# duplicate set — the alert rules require no companion change.
 _meter = metrics.get_meter(__name__)
 _messages_forwarded = _meter.create_counter(
-    "socket_client_messages_forwarded_total",
+    "petrosa_socket_client_messages_forwarded_total",
     description="Binance WS messages successfully published to NATS",
 )
 _messages_dropped = _meter.create_counter(
-    "socket_client_messages_dropped_total",
+    "petrosa_socket_client_messages_dropped_total",
     description="Messages dropped (queue full or NATS disconnect)",
 )
 _reconnect_attempts = _meter.create_counter(
-    "socket_client_reconnect_attempts_total",
+    "petrosa_socket_client_ws_reconnects_total",
     description="WebSocket reconnection attempts",
 )
 _connection_errors = _meter.create_counter(
-    "socket_client_connection_errors_total",
+    "petrosa_socket_client_connection_errors_total",
     description="WebSocket or NATS connection failures",
 )
+_nats_publish_errors = _meter.create_counter(
+    "petrosa_socket_client_nats_publish_errors_total",
+    description="Failures publishing a message to NATS (connected but publish() raised)",
+)
 _processing_time = _meter.create_histogram(
-    "socket_client_message_processing_seconds",
+    "petrosa_socket_client_message_processing_seconds",
     description="Time from queue dequeue to NATS publish",
     unit="s",
 )
 _queue_wait_time = _meter.create_histogram(
-    "socket_client_queue_wait_seconds",
+    "petrosa_socket_client_queue_wait_seconds",
     description="Time a worker waited on the queue before dequeue",
     unit="s",
 )
@@ -491,6 +502,7 @@ class BinanceWebSocketClient:
 
                 except Exception as e:
                     self.logger.error(f"Failed to publish to NATS: {e}")
+                    _nats_publish_errors.add(1, {"service": "socket-client"})
                     if span:
                         span.record_exception(e)
             else:
