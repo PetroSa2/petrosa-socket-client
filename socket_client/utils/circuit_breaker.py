@@ -7,10 +7,12 @@ and prevent cascading failures in the WebSocket client.
 
 import asyncio
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from enum import Enum
 from typing import Any, TypeVar, cast
 
+from opentelemetry import metrics
+from opentelemetry.metrics import CallbackOptions, Observation
 from structlog import get_logger
 
 import constants
@@ -206,4 +208,38 @@ nats_circuit_breaker = AsyncCircuitBreaker(
     expected_exception=Exception,
     name="nats",
     half_open_max_calls=constants.NATS_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS,
+)
+
+# OpenTelemetry gauge for circuit-breaker state (per #132).
+#
+# Emits one series per (breaker name, state) pair on every collection —
+# value 1.0 for the breaker's current state, 0.0 for the other two — rather
+# than only emitting the current state. This keeps the series set constantly
+# present (bounded: 2 breakers * 3 states = 6 series) so the Grafana alert
+# `max(petrosa_socket_client_circuit_breaker_state{state="open"}) > 0`
+# evaluates against real 0/1 data instead of a label combination that only
+# exists while OPEN.
+_meter = metrics.get_meter(__name__)
+
+
+def _observe_circuit_breaker_state(
+    options: CallbackOptions,
+) -> Iterable[Observation]:
+    for breaker in (websocket_circuit_breaker, nats_circuit_breaker):
+        current_state = breaker.get_state()
+        for state in CircuitState:
+            yield Observation(
+                1.0 if state is current_state else 0.0,
+                {
+                    "service": "socket-client",
+                    "name": breaker.name,
+                    "state": state.value,
+                },
+            )
+
+
+_circuit_breaker_state_gauge = _meter.create_observable_gauge(
+    "petrosa_socket_client_circuit_breaker_state",
+    callbacks=[_observe_circuit_breaker_state],
+    description="Circuit breaker state (1=current state, 0=other states); labels: name, state",
 )
