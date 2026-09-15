@@ -17,4 +17,10 @@ jobs:
       image-name: 'yurisa2/petrosa-socket-client'
       python-version: '3.11'
       skip-docker-build: true
+      # Explicit per-repo floor (petrosa_k8s#1052 epic step 5 / #142). Measured
+      # coverage is ~85.55% — matching the canonical Golden Standard floor of
+      # 40 already enforced locally via Makefile's COVERAGE_THRESHOLD (#136),
+      # pinned explicitly here too so CI doesn't silently rely on the shared
+      # workflow's default if that default ever changes.
+      coverage-threshold: '40'
     secrets: inherit
