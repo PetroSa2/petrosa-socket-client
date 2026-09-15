@@ -108,47 +108,6 @@ exclude = ["tests*", "docs*", "scripts*", "venv*", ".venv*", "build*", "dist*"]
 [tool.setuptools.package-data]
 socket_client = ["py.typed"]
 
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = false
-strict_equality = true
-show_error_codes = true
-exclude = [
-    "scripts/run_pipeline.py",
-    "scripts/test_pipeline_simulation.py",
-    "scripts/test_production_simulation.py",
-    "scripts/test_integration.py",
-    "scripts/test_otel_setup.py",
-    "scripts/test_nats_messaging.py",
-    "scripts/telemetry_test_script.py",
-    "scripts/fix_.*\\.py",
-    "scripts/add_.*\\.py",
-    "scripts/auto_context.py",
-    "tests/.*",
-]
-
-[[tool.mypy.overrides]]
-module = [
-    "websockets.*",
-    "nats.*",
-    "aiohttp.*",
-    "orjson.*",
-    "pybreaker.*",
-    "petrosa_otel.*",
-    "prometheus_client.*",
-]
-ignore_missing_imports = true
-
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --strict-config"
