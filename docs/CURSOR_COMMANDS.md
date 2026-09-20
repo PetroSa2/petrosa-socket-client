@@ -15,8 +15,12 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -A
 ```
 
 ### 3. Get Pipeline Status
+MCP-capable agents should use the official `github` Actions tools to list workflow
+runs. Use this CLI fallback for non-MCP clients, deterministic scripts, runners, or
+unsupported operations:
+
 ```bash
-# Check GitHub Actions pipeline status
+# Check GitHub Actions pipeline status (CLI fallback)
 gh run list --json status,conclusion,url,createdAt > /tmp/runs.json && cat /tmp/runs.json
 ```
 
@@ -35,6 +39,7 @@ python -m pytest tests/ -v --cov=. --cov-report=term --tb=short
 
 ### For Pipeline Issues:
 ```bash
+# Use github MCP Actions tools when available; otherwise use this CLI fallback.
 gh run list --json status,conclusion,url,createdAt > /tmp/runs.json && cat /tmp/runs.json && echo "Now help me fix pipeline issues"
 ```
 
