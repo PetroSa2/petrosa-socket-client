@@ -8,7 +8,10 @@ Please help me with [YOUR REQUEST].
 IMPORTANT: Follow these rules from .cursorrules:
 - Use kubectl with --kubeconfig=k8s/kubeconfig.yaml
 - Only use existing secret 'petrosa-sensitive-credentials' and configmap 'petrosa-common-config'
-- For GitHub CLI, use: gh command > /tmp/file.json && cat /tmp/file.json
+- Prefer the official `github` MCP server for repository, issue, pull request,
+  review, release, and GitHub Actions operations, and `github-projects` MCP for
+  Projects v2. Use `gh command > /tmp/file.json && cat /tmp/file.json` only as
+  the non-MCP or unsupported-operation fallback.
 - Follow PEP 8 for Python code
 - Add proper error handling and logging
 - Check docs/REPOSITORY_SETUP_GUIDE.md and docs/QUICK_REFERENCE.md first
@@ -24,7 +27,10 @@ Please help me deploy the application to the cluster.
 IMPORTANT: Follow these rules from .cursorrules:
 - Use kubectl with --kubeconfig=k8s/kubeconfig.yaml
 - Only use existing secret 'petrosa-sensitive-credentials' and configmap 'petrosa-common-config'
-- For GitHub CLI, use: gh command > /tmp/file.json && cat /tmp/file.json
+- Prefer the official `github` MCP server for repository, issue, pull request,
+  review, release, and GitHub Actions operations, and `github-projects` MCP for
+  Projects v2. Use `gh command > /tmp/file.json && cat /tmp/file.json` only as
+  the non-MCP or unsupported-operation fallback.
 - Follow PEP 8 for Python code
 - Add proper error handling and logging
 - Check docs/REPOSITORY_SETUP_GUIDE.md and docs/QUICK_REFERENCE.md first
