@@ -60,12 +60,12 @@ or bypass branch protection with `--admin`.
    - **Target environment**: Choose `staging` or `production`
      - `staging`: For testing changes before production
      - `production`: For live deployment to production cluster
-   
+
    - **Version bump type**: Choose `patch`, `minor`, or `major`
      - `patch`: Bug fixes, small changes (1.0.0 → 1.0.1)
      - `minor`: New features, backward-compatible (1.0.0 → 1.1.0)
      - `major`: Breaking changes, major updates (1.0.0 → 2.0.0)
-   
+
    - **Reason for deployment**: Provide a clear explanation
      - Example: "Updated NATS connection timeout configuration"
      - Example: "Re-deploy after Kubernetes cluster upgrade"
