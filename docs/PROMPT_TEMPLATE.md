@@ -14,7 +14,7 @@ IMPORTANT: Follow these rules from .cursorrules:
   the non-MCP or unsupported-operation fallback.
 - Follow PEP 8 for Python code
 - Add proper error handling and logging
-- Check docs/REPOSITORY_SETUP_GUIDE.md and docs/QUICK_REFERENCE.md first
+- Check docs/archive/REPOSITORY_SETUP_GUIDE.md and docs/QUICK_REFERENCE.md first
 
 [YOUR SPECIFIC REQUEST HERE]
 ```
@@ -33,7 +33,7 @@ IMPORTANT: Follow these rules from .cursorrules:
   the non-MCP or unsupported-operation fallback.
 - Follow PEP 8 for Python code
 - Add proper error handling and logging
-- Check docs/REPOSITORY_SETUP_GUIDE.md and docs/QUICK_REFERENCE.md first
+- Check docs/archive/REPOSITORY_SETUP_GUIDE.md and docs/QUICK_REFERENCE.md first
 
 I need to deploy the latest version of the data extractor service.
 ```

@@ -161,12 +161,6 @@ class PipelineRunner:
         if kwargs.get("batch_size"):
             args.extend(["--batch-size", str(kwargs["batch_size"])])
 
-        if kwargs.get("db_adapter"):
-            args.extend(["--db-adapter", kwargs["db_adapter"]])
-
-        if kwargs.get("db_uri"):
-            args.extend(["--db-uri", kwargs["db_uri"]])
-
         if kwargs.get("log_level"):
             args.extend(["--log-level", kwargs["log_level"]])
 
@@ -198,12 +192,6 @@ class PipelineRunner:
                 args.extend(["--symbols"] + kwargs["symbols"])
             else:
                 args.extend(["--symbols", kwargs["symbols"]])
-
-        if kwargs.get("db_adapter"):
-            args.extend(["--db-adapter", kwargs["db_adapter"]])
-
-        if kwargs.get("db_uri"):
-            args.extend(["--db-uri", kwargs["db_uri"]])
 
         if kwargs.get("log_level"):
             args.extend(["--log-level", kwargs["log_level"]])
@@ -238,12 +226,6 @@ class PipelineRunner:
 
         if kwargs.get("limit"):
             args.extend(["--limit", str(kwargs["limit"])])
-
-        if kwargs.get("db_adapter"):
-            args.extend(["--db-adapter", kwargs["db_adapter"]])
-
-        if kwargs.get("db_uri"):
-            args.extend(["--db-uri", kwargs["db_uri"]])
 
         if kwargs.get("log_level"):
             args.extend(["--log-level", kwargs["log_level"]])
@@ -281,12 +263,6 @@ class PipelineRunner:
 
         if kwargs.get("max_workers"):
             args.extend(["--max-workers", str(kwargs["max_workers"])])
-
-        if kwargs.get("db_adapter"):
-            args.extend(["--db-adapter", kwargs["db_adapter"]])
-
-        if kwargs.get("db_uri"):
-            args.extend(["--db-uri", kwargs["db_uri"]])
 
         if kwargs.get("log_level"):
             args.extend(["--log-level", kwargs["log_level"]])
@@ -444,12 +420,6 @@ Examples:
         "--batch-size", type=int, help="Batch size for database operations"
     )
     parser.add_argument("--limit", type=int, help="Limit for trades extraction")
-    parser.add_argument(
-        "--db-adapter",
-        choices=["mongodb", "mysql", "postgresql"],
-        help="Database adapter to use",
-    )
-    parser.add_argument("--db-uri", help="Database connection URI")
     parser.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],

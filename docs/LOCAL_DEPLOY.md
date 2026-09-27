@@ -73,5 +73,5 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward -n nats svc/nats-server 42
 ```
 
 ## References
-- See `docs/REPOSITORY_SETUP_GUIDE.md` for full setup and troubleshooting
+- See `docs/archive/REPOSITORY_SETUP_GUIDE.md` for full setup and troubleshooting
 - See `docs/QUICK_REFERENCE.md` for common commands

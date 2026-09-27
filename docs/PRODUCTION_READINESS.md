@@ -214,7 +214,7 @@ This checklist ensures the Petrosa Binance Data Extractor is ready for productio
 
 ## 📚 Related Documentation
 
-- [Deployment Guide](DEPLOYMENT_GUIDE.md) - Step-by-step deployment
-- [Operations Guide](OPERATIONS_GUIDE.md) - Day-to-day operations
+- [Deployment Guide](archive/DEPLOYMENT_GUIDE.md) - Step-by-step deployment
+- [Operations Guide](archive/OPERATIONS_GUIDE.md) - Day-to-day operations
 - [Local Deployment](LOCAL_DEPLOY.md) - Local testing setup
-- [CI/CD Pipeline](CI_CD_PIPELINE_RESULTS.md) - Automated testing results
+- [CI/CD Pipeline](archive/CI_CD_PIPELINE_RESULTS.md) - Automated testing results

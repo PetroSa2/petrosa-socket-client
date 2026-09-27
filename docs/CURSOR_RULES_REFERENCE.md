@@ -37,6 +37,6 @@ When working with this repository, ALWAYS follow these rules:
 - Don't run CLI fallback commands directly without file output
 
 ## Key Files to Check
-- `docs/REPOSITORY_SETUP_GUIDE.md`
+- `docs/archive/REPOSITORY_SETUP_GUIDE.md`
 - `docs/QUICK_REFERENCE.md`
 - `k8s/kubeconfig.yaml`

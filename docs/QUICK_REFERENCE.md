@@ -157,8 +157,6 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml describe pod <pod-name> -n petrosa-apps
 ### Environment Variables
 ```bash
 # Required
-DB_ADAPTER=mysql
-MYSQL_URI=mysql+pymysql://username:password@localhost:3306/binance_data
 
 # Optional
 BINANCE_API_KEY=your_api_key
@@ -202,7 +200,7 @@ MCP for Projects v2. Use `gh` only for non-MCP clients, deterministic scripts,
 runners, or unsupported operations. Use configured file-backed authentication or
 environment variables; never put credentials in docs.
 
-- [Full Setup Guide](REPOSITORY_SETUP_GUIDE.md)
-- [Operations Guide](OPERATIONS_GUIDE.md)
-- [Deployment Guide](DEPLOYMENT_GUIDE.md)
+- [Full Setup Guide](archive/REPOSITORY_SETUP_GUIDE.md)
+- [Operations Guide](archive/OPERATIONS_GUIDE.md)
+- [Deployment Guide](archive/DEPLOYMENT_GUIDE.md)
 - [Local Deployment](LOCAL_DEPLOY.md)

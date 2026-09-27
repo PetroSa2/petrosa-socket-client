@@ -373,9 +373,9 @@ If you encounter issues not covered here:
 
 ## Related Documentation
 
-- [Deployment Guide](./DEPLOYMENT_GUIDE.md) - Standard deployment procedures
+- [Deployment Guide](./archive/DEPLOYMENT_GUIDE.md) - Standard deployment procedures
 - [Versioning Guide](./VERSIONING_GUIDE.md) - Version management details
-- [Operations Guide](./OPERATIONS_GUIDE.md) - Operational procedures
+- [Operations Guide](./archive/OPERATIONS_GUIDE.md) - Operational procedures
 - [Kubernetes Setup](./KUBERNETES_SETUP.md) - Cluster configuration
 
 ## Changelog

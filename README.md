@@ -16,8 +16,8 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 │                                                                              │
 │  ┌────────────────┐    ┌──────────────────┐    ┌─────────────────────┐    │
 │  │                │    │                  │    │                     │    │
-│  │  Binance API   │───▶│  Data Extractor  │───▶│   MySQL Database    │    │
-│  │  (Historical)  │    │  (Batch Jobs)    │    │   (Klines, Rates)   │    │
+│  │  Binance API   │───▶│  Data Extractor  │───▶│   Data-manager API    │    │
+│  │  (Historical)  │    │  (Batch Jobs)    │    │   (MongoDB)   │    │
 │  │                │    │                  │    │                     │    │
 │  └────────────────┘    └──────────────────┘    └─────────────────────┘    │
 │                                                            │                 │
@@ -58,8 +58,8 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 | Service | Purpose | Input | Output | Status |
 |---------|---------|-------|--------|--------|
 | **petrosa-socket-client** | Real-time WebSocket data ingestion | Binance WebSocket API | NATS: `binance.futures.websocket.data` | **YOU ARE HERE** |
-| **petrosa-binance-data-extractor** | Historical data extraction & gap filling | Binance REST API | MySQL (klines, funding rates, trades) | Batch Processing |
-| **petrosa-bot-ta-analysis** | Technical analysis (28 strategies) | MySQL klines data | NATS: `intent.trading.*` | Signal Generation |
+| **petrosa-binance-data-extractor** | Historical data extraction & gap filling | Binance REST API | Data-manager API (MongoDB) | Batch Processing |
+| **petrosa-bot-ta-analysis** | Technical analysis (28 strategies) | Data-manager `/data/candles` | NATS: `intent.trading.*` | Signal Generation |
 | **petrosa-cio** | Centralized orchestrator & gatekeeper | NATS: `intent.>` | NATS: `signals.trading` | Interception Layer |
 | **petrosa-realtime-strategies** | Real-time signal generation | NATS: `binance.futures.websocket.data` | NATS: `intent.trading.*` | Live Processing |
 | **petrosa-tradeengine** | Order execution & trade management | NATS: `signals.trading` | Binance Orders API, MongoDB audit | Order Execution |
@@ -104,7 +104,7 @@ A high-performance Binance WebSocket client designed for production cryptocurren
        ▼                                 ▼
 ┌──────────────────┐            ┌───────────────┐
 │ Realtime         │            │  TA Bot       │
-│ Strategies       │            │  (via MySQL)  │
+│ Strategies       │            │  (via data-manager API)  │
 │                  │            │               │
 │ • Process live   │            │ • Historical  │
 │ • Generate       │            │ • 28 strategies│
@@ -1262,10 +1262,14 @@ kubectl exec -it deployment/petrosa-socket-client -n petrosa-apps -- \
 
 ## 📚 Documentation Structure
 
+The socket-client publishes Binance WebSocket data to NATS and holds no database connection.
+Historical candles are written and served by the data-manager API backed by MongoDB; the TA bot
+reads them from `data-manager /data/candles`.
+
 Core documentation (kept up-to-date):
 - `README.md` - Project overview and quick start
 - `QUICK_REFERENCE.md` - Common commands and workflows
-- `DEPLOYMENT_GUIDE.md` - Production deployment
+- `MANUAL_DEPLOYMENT_GUIDE.md` - Production deployment
 - `CI_CD_PIPELINE.md` - CI/CD reference
 - `TESTING.md` - Testing procedures
 - `MAKEFILE.md` - Makefile commands
@@ -1317,8 +1321,8 @@ make k8s-logs
 ## 📚 Additional Documentation
 
 - [OpenTelemetry Installation Guide](docs/OTEL_INSTALLATION_GUIDE.md)
-- [Repository Setup Guide](docs/REPOSITORY_SETUP_GUIDE.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Repository Setup Guide](docs/archive/REPOSITORY_SETUP_GUIDE.md)
+- [Deployment Guide](docs/MANUAL_DEPLOYMENT_GUIDE.md)
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
 
 ---

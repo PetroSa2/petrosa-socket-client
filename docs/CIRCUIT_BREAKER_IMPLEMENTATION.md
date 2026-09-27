@@ -131,9 +131,6 @@ db_circuit_breaker = CircuitBreaker(
     expected_exception=(
         sqlalchemy.exc.OperationalError,
         sqlalchemy.exc.DisconnectionError,
-        pymysql.err.OperationalError,
-        pymongo.errors.ConnectionFailure,
-        pymongo.errors.ServerSelectionTimeoutError
     )
 )
 

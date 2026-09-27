@@ -1,3 +1,4 @@
+# Copied from binance-data-extractor; not applicable: socket-client holds no database connection.
 # Production Deployment Guide
 
 ## 🚀 Step-by-Step Production Deployment
@@ -198,7 +199,6 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml describe pod -l app=binance-extractor -
 
 ```bash
 kubectl --kubeconfig=k8s/kubeconfig.yaml get secrets -n petrosa-apps
-kubectl --kubeconfig=k8s/kubeconfig.yaml get secret petrosa-sensitive-credentials -n petrosa-apps -o jsonpath='{.data.MYSQL_URI}' | base64 -d
 ```
 
 ## References

@@ -178,8 +178,6 @@ BINANCE_API_SECRET=your_api_secret
 JWT_SECRET_KEY=your_jwt_secret
 
 # Data Extractor
-DB_ADAPTER=mysql
-MYSQL_URI=mysql+pymysql://username:password@localhost:3306/binance_data
 BINANCE_API_KEY=your_api_key
 BINANCE_API_SECRET=your_api_secret
 ```
