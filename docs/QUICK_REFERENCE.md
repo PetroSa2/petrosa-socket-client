@@ -192,14 +192,6 @@ NATS_URL=nats://localhost:4222
 
 ## 🔗 Quick Links
 
-## GitHub tooling
-
-For direct operations, prefer the official `github` MCP server for repository, issue,
-pull request, review, release, and GitHub Actions operations, and `github-projects`
-MCP for Projects v2. Use `gh` only for non-MCP clients, deterministic scripts,
-runners, or unsupported operations. Use configured file-backed authentication or
-environment variables; never put credentials in docs.
-
 - [Full Setup Guide](archive/REPOSITORY_SETUP_GUIDE.md)
 - [Operations Guide](archive/OPERATIONS_GUIDE.md)
 - [Deployment Guide](archive/DEPLOYMENT_GUIDE.md)

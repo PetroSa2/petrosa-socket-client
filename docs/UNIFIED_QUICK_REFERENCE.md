@@ -222,15 +222,7 @@ BINANCE_API_SECRET=your_api_secret
 - [Kubernetes Guide](KUBERNETES.md)
 - [CI/CD Guide](CI_CD.md)
 
-### GitHub MCP and CLI fallback
-
-For direct operations, prefer the official `github` MCP server for repository, issue,
-pull request, review, release, and GitHub Actions operations, and `github-projects`
-MCP for Projects v2. Use the CLI below only for non-MCP clients, deterministic
-scripts, runners, or unsupported operations. Use configured file-backed authentication
-or environment variables; never put credentials in docs.
-
-#### CLI fallback
+### GitHub CLI
 ```bash
 # Get repository info
 gh api repos/owner/repo > /tmp/repo_info.json
@@ -254,8 +246,7 @@ cat /tmp/repo_info.json | jq '.name'
 - **Use `petrosa-sensitive-credentials`** for all credentials
 - **Use `petrosa-common-config`** for shared configuration
 
-### GitHub tooling rules
-- **Prefer MCP** as described above.
+### GitHub CLI
 - **ALWAYS dump output to `/tmp` files** and read from them
 - **Example**: `gh command > /tmp/file.json && cat /tmp/file.json`
 
