@@ -12,9 +12,13 @@ When working with this repository, ALWAYS follow these rules:
 - **ONLY use existing configmap**: `petrosa-common-config`
 - **NEVER create new secrets or configmaps**
 
-## GitHub CLI
-- **ALWAYS use file-based approach**: `gh command > /tmp/file.json && cat /tmp/file.json`
-- Example: `gh run list --json status,conclusion,url,createdAt > /tmp/runs.json && cat /tmp/runs.json`
+## GitHub MCP and CLI fallback
+- Prefer the official `github` MCP server for repository, issue, pull request,
+  review, release, and GitHub Actions operations.
+- Use `github-projects` MCP for Projects v2 items and fields.
+- Use the CLI only for non-MCP clients, deterministic scripts, runners, or
+  unsupported operations: `gh command > /tmp/file.json && cat /tmp/file.json`.
+- Example fallback: `gh run list --json status,conclusion,url,createdAt > /tmp/runs.json && cat /tmp/runs.json`
 
 ## CI/CD Pipeline
 - **Continue until GitHub Actions pipeline passes**
@@ -30,7 +34,7 @@ When working with this repository, ALWAYS follow these rules:
 ## Common Mistakes to Avoid
 - Don't suggest AWS EKS commands (this is MicroK8s)
 - Don't create new Kubernetes secrets/configmaps
-- Don't run GitHub CLI commands directly without file output
+- Don't run CLI fallback commands directly without file output
 
 ## Key Files to Check
 - `docs/archive/REPOSITORY_SETUP_GUIDE.md`
