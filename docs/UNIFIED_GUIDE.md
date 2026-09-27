@@ -107,8 +107,6 @@ JWT_SECRET_KEY=your-jwt-secret
 
 #### Data Extractor
 ```bash
-DB_ADAPTER=mysql
-MYSQL_URI=mysql+pymysql://user:pass@mysql:3306/binance_data
 BINANCE_API_KEY=your-api-key
 BINANCE_API_SECRET=your-api-secret
 ```

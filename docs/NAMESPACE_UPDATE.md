@@ -246,6 +246,6 @@ kubectl describe namespace petrosa-apps
 ## 📚 Related Documentation
 
 - [Local Deployment](LOCAL_DEPLOY.md) - Local development setup
-- [Deployment Guide](DEPLOYMENT_GUIDE.md) - Production deployment
-- [Operations Guide](OPERATIONS_GUIDE.md) - Day-to-day operations
+- [Deployment Guide](archive/DEPLOYMENT_GUIDE.md) - Production deployment
+- [Operations Guide](archive/OPERATIONS_GUIDE.md) - Day-to-day operations
 - [Kubernetes Manifests](../k8s/) - Deployment configurations

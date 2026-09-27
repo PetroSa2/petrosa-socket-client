@@ -1,3 +1,4 @@
+# Copied from binance-data-extractor; not applicable: socket-client holds no database connection.
 # Test Implementation Guide
 
 ## Quick Start

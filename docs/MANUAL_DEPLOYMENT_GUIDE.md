@@ -60,12 +60,12 @@ or bypass branch protection with `--admin`.
    - **Target environment**: Choose `staging` or `production`
      - `staging`: For testing changes before production
      - `production`: For live deployment to production cluster
-   
+
    - **Version bump type**: Choose `patch`, `minor`, or `major`
      - `patch`: Bug fixes, small changes (1.0.0 → 1.0.1)
      - `minor`: New features, backward-compatible (1.0.0 → 1.1.0)
      - `major`: Breaking changes, major updates (1.0.0 → 2.0.0)
-   
+
    - **Reason for deployment**: Provide a clear explanation
      - Example: "Updated NATS connection timeout configuration"
      - Example: "Re-deploy after Kubernetes cluster upgrade"
@@ -373,9 +373,9 @@ If you encounter issues not covered here:
 
 ## Related Documentation
 
-- [Deployment Guide](./DEPLOYMENT_GUIDE.md) - Standard deployment procedures
+- [Deployment Guide](./archive/DEPLOYMENT_GUIDE.md) - Standard deployment procedures
 - [Versioning Guide](./VERSIONING_GUIDE.md) - Version management details
-- [Operations Guide](./OPERATIONS_GUIDE.md) - Operational procedures
+- [Operations Guide](./archive/OPERATIONS_GUIDE.md) - Operational procedures
 - [Kubernetes Setup](./KUBERNETES_SETUP.md) - Cluster configuration
 
 ## Changelog

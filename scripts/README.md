@@ -3,7 +3,7 @@
 This directory contains utility scripts for the Petrosa Binance Data Extractor.
 
 ## 📚 Setup References
-- **[Repository Setup Guide](../docs/REPOSITORY_SETUP_GUIDE.md)** - Complete setup and configuration guide
+- **[Repository Setup Guide](../docs/archive/REPOSITORY_SETUP_GUIDE.md)** - Complete setup and configuration guide
 - **[Quick Reference Card](../docs/QUICK_REFERENCE.md)** - Essential commands and troubleshooting
 
 ## 🔧 Available Scripts

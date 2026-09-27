@@ -1,3 +1,4 @@
+# Copied from binance-data-extractor; not applicable: socket-client holds no database connection.
 # Repository Setup Guide
 
 This guide provides a comprehensive reference for setting up and working with the Petrosa Binance Data Extractor repository.

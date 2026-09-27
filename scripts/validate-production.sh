@@ -222,7 +222,7 @@ fi
 
 if [ -f "requirements.txt" ]; then
     # Check for key dependencies
-    key_deps=("pydantic" "binance-connector" "pymongo" "pymysql" "kubernetes")
+    key_deps=("pydantic" "binance-connector" "kubernetes")
     for dep in "${key_deps[@]}"; do
         if grep -q "$dep" requirements.txt; then
             print_check "Dependency $dep included" "PASS"

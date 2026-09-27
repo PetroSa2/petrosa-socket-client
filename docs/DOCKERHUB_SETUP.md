@@ -166,7 +166,7 @@ docker buildx build --platform linux/amd64,linux/arm64 -t test .
 
 ## 📚 Related Documentation
 
-- [CI/CD Pipeline Results](CI_CD_PIPELINE_RESULTS.md) - Build and deployment results
+- [CI/CD Pipeline Results](archive/CI_CD_PIPELINE_RESULTS.md) - Build and deployment results
 - [Local Deployment](LOCAL_DEPLOY.md) - Local development setup
-- [Deployment Guide](DEPLOYMENT_GUIDE.md) - Production deployment
+- [Deployment Guide](archive/DEPLOYMENT_GUIDE.md) - Production deployment
 - [Dockerfile](../Dockerfile) - Container build configuration
