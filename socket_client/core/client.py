@@ -9,13 +9,15 @@ import asyncio
 import json
 import time
 import uuid
-from collections import deque
+from collections import Counter, deque
+from datetime import UTC, datetime
 from typing import Any, Optional
 
 import nats
 import websockets
 from nats.aio.client import Client as NATSClient
 from opentelemetry import metrics
+from opentelemetry.metrics import Observation
 from structlog import get_logger
 
 import constants
@@ -46,35 +48,81 @@ except ImportError:
 # This is a rename of the pre-existing `socket_client_*` instruments, not a
 # duplicate set — the alert rules require no companion change.
 _meter = metrics.get_meter(__name__)
-_messages_forwarded = _meter.create_counter(
-    "petrosa_socket_client_messages_forwarded_total",
-    description="Binance WS messages successfully published to NATS",
+_connection_state = False
+
+
+def _observe_connection_state(options: Any) -> list[Observation]:
+    return [
+        Observation(1 if _connection_state else 0, {"state": "connected"}),
+        Observation(0 if _connection_state else 1, {"state": "disconnected"}),
+    ]
+
+
+_socket_connections = _meter.create_observable_gauge(
+    "petrosa_socket_connections",
+    description="Current socket connection state",
+    callbacks=[_observe_connection_state],
 )
-_messages_dropped = _meter.create_counter(
-    "petrosa_socket_client_messages_dropped_total",
-    description="Messages dropped (queue full or NATS disconnect)",
+_socket_messages = _meter.create_counter(
+    "petrosa_socket_messages_total",
+    description="Socket messages by direction and outcome",
 )
-_reconnect_attempts = _meter.create_counter(
-    "petrosa_socket_client_ws_reconnects_total",
-    description="WebSocket reconnection attempts",
+
+
+class _CompatibilityInstrument:
+    def __init__(self, instrument: Any) -> None:
+        self._instrument = instrument
+
+    def add(self, value: int, attributes: Optional[dict[str, str]] = None) -> None:
+        self._instrument.add(value)
+
+    def record(self, value: float, attributes: Optional[dict[str, str]] = None) -> None:
+        self._instrument.record(value)
+
+
+_messages_forwarded = _CompatibilityInstrument(
+    _meter.create_counter(
+        "petrosa_socket_client_messages_forwarded_total",
+        description="Binance WS messages successfully published to NATS",
+    )
 )
-_connection_errors = _meter.create_counter(
-    "petrosa_socket_client_connection_errors_total",
-    description="WebSocket or NATS connection failures",
+_messages_dropped = _CompatibilityInstrument(
+    _meter.create_counter(
+        "petrosa_socket_client_messages_dropped_total",
+        description="Messages dropped (queue full or NATS disconnect)",
+    )
 )
-_nats_publish_errors = _meter.create_counter(
-    "petrosa_socket_client_nats_publish_errors_total",
-    description="Failures publishing a message to NATS (connected but publish() raised)",
+_reconnect_attempts = _CompatibilityInstrument(
+    _meter.create_counter(
+        "petrosa_socket_client_ws_reconnects_total",
+        description="WebSocket reconnection attempts",
+    )
 )
-_processing_time = _meter.create_histogram(
-    "petrosa_socket_client_message_processing_seconds",
-    description="Time from queue dequeue to NATS publish",
-    unit="s",
+_connection_errors = _CompatibilityInstrument(
+    _meter.create_counter(
+        "petrosa_socket_client_connection_errors_total",
+        description="WebSocket or NATS connection failures",
+    )
 )
-_queue_wait_time = _meter.create_histogram(
-    "petrosa_socket_client_queue_wait_seconds",
-    description="Time a worker waited on the queue before dequeue",
-    unit="s",
+_nats_publish_errors = _CompatibilityInstrument(
+    _meter.create_counter(
+        "petrosa_socket_client_nats_publish_errors_total",
+        description="Failures publishing a message to NATS (connected but publish() raised)",
+    )
+)
+_processing_time = _CompatibilityInstrument(
+    _meter.create_histogram(
+        "petrosa_socket_client_message_processing_seconds",
+        description="Time from queue dequeue to NATS publish",
+        unit="s",
+    )
+)
+_queue_wait_time = _CompatibilityInstrument(
+    _meter.create_histogram(
+        "petrosa_socket_client_queue_wait_seconds",
+        description="Time a worker waited on the queue before dequeue",
+        unit="s",
+    )
 )
 
 
@@ -146,6 +194,11 @@ class BinanceWebSocketClient:
         self.last_heartbeat_time = time.time()
         self.last_heartbeat_processed = 0
         self.last_heartbeat_dropped = 0
+        self.summary_interval = 300
+        self.last_summary_time = time.time()
+        self._summary_started_at = datetime.now(UTC)
+        self._summary_messages: Counter[str] = Counter()
+        self._summary_outcomes: Counter[str] = Counter()
 
         # Message processing stats logging throttle
         self.last_stats_log_time = time.time()
@@ -160,8 +213,9 @@ class BinanceWebSocketClient:
         self.processor_tasks: list[asyncio.Task] = []
         self.ping_task: Optional[asyncio.Task] = None
         self.heartbeat_task: Optional[asyncio.Task] = None
+        self.summary_task: Optional[asyncio.Task] = None
 
-        self.logger.info(
+        self.logger.debug(
             "WebSocket client initialized",
             ws_url=ws_url,
             streams=streams,
@@ -203,6 +257,7 @@ class BinanceWebSocketClient:
             # Start heartbeat task if enabled
             if constants.ENABLE_HEARTBEAT:
                 self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+            self.summary_task = asyncio.create_task(self._summary_loop())
 
             self.logger.info("WebSocket client started successfully")
 
@@ -222,6 +277,7 @@ class BinanceWebSocketClient:
             self.nats_task,
             self.ping_task,
             self.heartbeat_task,
+            self.summary_task,
         ] + self.processor_tasks
 
         for task in tasks_to_cancel:
@@ -242,8 +298,55 @@ class BinanceWebSocketClient:
         if self.nats_client:
             await self.nats_client.close()
 
-        self.is_connected = False
+        self._set_connection_state(False)
+        self._emit_summary()
         self.logger.info("WebSocket client stopped")
+
+    def _set_connection_state(self, connected: bool) -> None:
+        global _connection_state
+        self.is_connected = connected
+        _connection_state = connected
+
+    def _record_message(self, direction: str, outcome: str) -> None:
+        _socket_messages.add(1, {"direction": direction, "outcome": outcome})
+        self._summary_messages[f"{direction}_{outcome}"] += 1
+        self._summary_outcomes[outcome] += 1
+
+    def _emit_summary(self) -> None:
+        now = time.time()
+        latencies = sorted(self._recent_publish_latencies)
+        p50 = latencies[len(latencies) // 2] * 1000 if latencies else 0
+        p95 = (
+            latencies[max(0, int(len(latencies) * 0.95) - 1)] * 1000 if latencies else 0
+        )
+        self.logger.info(
+            "SUMMARY",
+            window_seconds=300,
+            service="petrosa-socket-client",
+            started_at=self._summary_started_at.isoformat().replace("+00:00", "Z"),
+            counters=dict(self._summary_messages),
+            outcomes=dict(self._summary_outcomes),
+            connection_state="connected" if self.is_connected else "disconnected",
+            latency_ms={"p50": round(p50, 2), "p95": round(p95, 2)},
+        )
+        self._summary_messages.clear()
+        self._summary_outcomes.clear()
+        self._summary_started_at = datetime.now(UTC)
+        self.last_summary_time = now
+
+    async def _summary_loop(self) -> None:
+        while self.is_running:
+            try:
+                await asyncio.sleep(self.summary_interval)
+                if self.is_running:
+                    self._emit_summary()
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                self.logger.error(
+                    "Summary logging failed", error_type=type(exc).__name__
+                )
+                return
 
     async def _connect_websocket(self) -> None:
         """Connect to Binance WebSocket."""
@@ -297,19 +400,17 @@ class BinanceWebSocketClient:
             # Start WebSocket listener
             self.websocket_task = asyncio.create_task(self._websocket_listener())
 
-            self.is_connected = True
+            self._set_connection_state(True)
             self.reconnect_attempts = 0
 
-            self.logger.info(
-                "Connected to Binance WebSocket", streams=self.streams, url=self.ws_url
-            )
+            self.logger.debug("Connected to Binance WebSocket")
 
         except Exception as e:
             self.logger.error(f"Failed to connect to WebSocket: {e}")
             _connection_errors.add(1, {"service": "socket-client", "type": "websocket"})
             if span:
                 span.record_exception(e)
-            self.is_connected = False
+            self._set_connection_state(False)
             raise
 
     async def _connect_nats(self) -> None:
@@ -324,7 +425,7 @@ class BinanceWebSocketClient:
                 name=constants.NATS_CLIENT_NAME,
             )
 
-            self.logger.info(f"Connected to NATS server: {self.nats_url}")
+            self.logger.debug("Connected to NATS server")
 
         except Exception as e:
             self.logger.error(f"Failed to connect to NATS: {e}")
@@ -355,6 +456,7 @@ class BinanceWebSocketClient:
                         _messages_dropped.add(
                             1, {"service": "socket-client", "reason": "queue_full"}
                         )
+                        self._record_message("inbound", "dropped")
                         self.logger.warning(
                             "Message queue full, dropping message",
                             dropped_count=self.dropped_messages,
@@ -366,11 +468,11 @@ class BinanceWebSocketClient:
                     self.logger.error(f"Error processing WebSocket message: {e}")
 
         except websockets.exceptions.ConnectionClosed:
-            self.logger.warning("WebSocket connection closed")
+            self.logger.debug("WebSocket connection closed")
         except Exception as e:
             self.logger.error(f"WebSocket listener error: {e}")
         finally:
-            self.is_connected = False
+            self._set_connection_state(False)
             await self._handle_disconnection()
 
     async def _process_messages(self, worker_id: int = 0) -> None:
@@ -380,7 +482,7 @@ class BinanceWebSocketClient:
         Args:
             worker_id: ID of this worker for logging/debugging
         """
-        self.logger.info(f"Message processor worker {worker_id} started")
+        self.logger.debug("Message processor worker started", worker_id=worker_id)
 
         while self.is_running:
             try:
@@ -405,11 +507,12 @@ class BinanceWebSocketClient:
 
             except Exception as e:
                 self.logger.error(
-                    f"Error processing message in worker {worker_id}: {e}",
+                    "Error processing message in worker",
                     worker_id=worker_id,
+                    error_type=type(e).__name__,
                 )
 
-        self.logger.info(f"Message processor worker {worker_id} stopped")
+        self.logger.debug("Message processor worker stopped", worker_id=worker_id)
 
     async def _process_single_message(self, data: dict) -> None:
         """Process a single message."""
@@ -433,9 +536,8 @@ class BinanceWebSocketClient:
             # Validate message format - Binance WebSocket messages come as direct JSON objects
             # Note: isinstance check is defensive code for runtime safety, though type hints declare dict
             if not isinstance(data, dict):
-                self.logger.warning(
-                    "Invalid message format - not a dictionary", data=data
-                )
+                self._record_message("inbound", "invalid")
+                self.logger.debug("Invalid message format - not a dictionary")
                 if span:
                     span.set_attribute("error", "invalid_format")
                 return
@@ -443,7 +545,8 @@ class BinanceWebSocketClient:
             # Determine stream name from message type
             stream_name = self._determine_stream_name(data)
             if not stream_name:
-                self.logger.warning("Could not determine stream name", data=data)
+                self._record_message("inbound", "invalid")
+                self.logger.debug("Could not determine stream name")
                 if span:
                     span.set_attribute("error", "unknown_stream")
                 return
@@ -468,6 +571,7 @@ class BinanceWebSocketClient:
                     )
 
                     self.processed_messages += 1
+                    self._record_message("outbound", "success")
                     _messages_forwarded.add(
                         1, {"service": "socket-client", "stream": stream_name}
                     )
@@ -486,7 +590,7 @@ class BinanceWebSocketClient:
                         current_time - self.last_stats_log_time
                         >= self.stats_log_interval
                     ):
-                        self.logger.info(
+                        self.logger.debug(
                             "Message processing stats",
                             processed=self.processed_messages,
                             dropped=self.dropped_messages,
@@ -501,11 +605,15 @@ class BinanceWebSocketClient:
                         self.last_stats_log_time = current_time
 
                 except Exception as e:
-                    self.logger.error(f"Failed to publish to NATS: {e}")
+                    self._record_message("outbound", "error")
+                    self.logger.error(
+                        "Failed to publish to NATS", error_type=type(e).__name__
+                    )
                     _nats_publish_errors.add(1, {"service": "socket-client"})
                     if span:
                         span.record_exception(e)
             else:
+                self._record_message("outbound", "dropped")
                 self.logger.warning("NATS client not connected, dropping message")
                 self.dropped_messages += 1
                 _messages_dropped.add(
@@ -640,7 +748,7 @@ class BinanceWebSocketClient:
         )
 
         # Log comprehensive heartbeat statistics
-        self.logger.info(
+        self.logger.debug(
             "HEARTBEAT: WebSocket Client Statistics",
             # Connection status
             connection_status=self.is_connected,
@@ -682,14 +790,16 @@ class BinanceWebSocketClient:
         if not self.is_running:
             return
 
-        self.logger.warning("WebSocket disconnected, attempting reconnection")
+        self.logger.debug("WebSocket disconnected, attempting reconnection")
 
         while self.is_running and self.reconnect_attempts < self.max_reconnect_attempts:
             try:
                 await asyncio.sleep(self.reconnect_delay * (2**self.reconnect_attempts))
 
-                self.logger.info(
-                    f"Attempting reconnection {self.reconnect_attempts + 1}/{self.max_reconnect_attempts}"
+                self.logger.debug(
+                    "Attempting reconnection",
+                    attempt=self.reconnect_attempts + 1,
+                    maximum=self.max_reconnect_attempts,
                 )
 
                 await self._connect_websocket()
@@ -698,8 +808,10 @@ class BinanceWebSocketClient:
             except Exception as e:
                 self.reconnect_attempts += 1
                 _reconnect_attempts.add(1, {"service": "socket-client"})
-                self.logger.error(
-                    f"Reconnection attempt {self.reconnect_attempts} failed: {e}"
+                self.logger.warning(
+                    "Reconnection attempt failed",
+                    attempt=self.reconnect_attempts,
+                    error_type=type(e).__name__,
                 )
 
         if self.reconnect_attempts >= self.max_reconnect_attempts:
