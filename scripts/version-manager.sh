@@ -31,37 +31,37 @@ print_error() {
 # Function to validate VERSION_PLACEHOLDER integrity
 validate_version_placeholders() {
     print_status "Validating VERSION_PLACEHOLDER integrity..."
-    
+
     # Check for VERSION_PLACEHOLDER in k8s files
     PLACEHOLDER_COUNT=$(grep -r "VERSION_PLACEHOLDER" k8s/ 2>/dev/null | wc -l || echo "0")
-    
+
     if [ "$PLACEHOLDER_COUNT" -eq 0 ]; then
         print_error "❌ No VERSION_PLACEHOLDER found in k8s/ directory"
         print_error "   This indicates the version system is broken"
         print_error "   Expected to find VERSION_PLACEHOLDER in Kubernetes manifests"
         return 1
     fi
-    
+
     # Check for hardcoded versions
     HARDCODED_COUNT=$(grep -r "yurisa2/petrosa.*:v[0-9]" k8s/ 2>/dev/null | wc -l || echo "0")
-    
+
     if [ "$HARDCODED_COUNT" -gt 0 ]; then
         print_warning "⚠️  Found $HARDCODED_COUNT hardcoded versions in k8s/"
         print_warning "   These should be VERSION_PLACEHOLDER instead"
         grep -r "yurisa2/petrosa.*:v[0-9]" k8s/ 2>/dev/null || true
         return 1
     fi
-    
+
     # Check for "latest" tags
     LATEST_COUNT=$(grep -r "yurisa2/petrosa.*:latest" k8s/ 2>/dev/null | wc -l || echo "0")
-    
+
     if [ "$LATEST_COUNT" -gt 0 ]; then
         print_warning "⚠️  Found $LATEST_COUNT 'latest' tags in k8s/"
         print_warning "   These should be VERSION_PLACEHOLDER instead"
         grep -r "yurisa2/petrosa.*:latest" k8s/ 2>/dev/null || true
         return 1
     fi
-    
+
     print_success "✅ VERSION_PLACEHOLDER validation passed"
     print_status "   Found $PLACEHOLDER_COUNT VERSION_PLACEHOLDER references"
     return 0
@@ -161,10 +161,10 @@ update_k8s_manifests() {
 # Function to revert Kubernetes manifests
 revert_k8s_manifests() {
     print_status "Reverting Kubernetes manifests to VERSION_PLACEHOLDER..."
-    
+
     # Revert all changes in k8s directory
     git checkout k8s/
-    
+
     print_success "✅ Kubernetes manifests reverted to VERSION_PLACEHOLDER"
 }
 
@@ -172,22 +172,22 @@ revert_k8s_manifests() {
 show_version_info() {
     print_status "📦 Version Information"
     echo "======================"
-    
+
     # Current version
     LATEST_VERSION=$(git tag --sort=-version:refname | grep '^v[0-9]' | head -1 || echo 'None')
     echo "Latest version: $LATEST_VERSION"
-    
+
     # Next versions
     echo "Next patch version: $(generate_version patch)"
     echo "Next minor version: $(generate_version minor)"
     echo "Next major version: $(generate_version major)"
-    
+
     # VERSION_PLACEHOLDER status
     echo ""
     print_status "🔍 VERSION_PLACEHOLDER Status:"
     PLACEHOLDER_COUNT=$(grep -r "VERSION_PLACEHOLDER" k8s/ 2>/dev/null | wc -l || echo "0")
     echo "VERSION_PLACEHOLDER references: $PLACEHOLDER_COUNT"
-    
+
     # Git status
     echo ""
     print_status "📋 Git Status:"
@@ -198,39 +198,39 @@ show_version_info() {
 debug_version_issues() {
     print_status "🐛 Version Debug Information"
     echo "============================"
-    
+
     # Git status
     echo "Git status:"
     git status --porcelain
     echo ""
-    
+
     # All git tags
     echo "All git tags:"
     git tag --sort=-version:refname
     echo ""
-    
+
     # VERSION_PLACEHOLDER in k8s/
     echo "VERSION_PLACEHOLDER in k8s/:"
     grep -r "VERSION_PLACEHOLDER" k8s/ 2>/dev/null || echo "None found"
     echo ""
-    
+
     # Hardcoded versions in k8s/
     echo "Hardcoded versions in k8s/:"
     grep -r "yurisa2/petrosa.*:v[0-9]" k8s/ 2>/dev/null || echo "None found"
     echo ""
-    
+
     # Latest tags in k8s/
     echo "'latest' tags in k8s/:"
     grep -r "yurisa2/petrosa.*:latest" k8s/ 2>/dev/null || echo "None found"
     echo ""
-    
+
     # CI/CD pipeline status
     if [ -f ".github/workflows/ci-cd.yml" ]; then
         echo "CI/CD pipeline file exists: ✅"
     else
         echo "CI/CD pipeline file missing: ❌"
     fi
-    
+
     # Version management scripts
     if [ -f "scripts/create-release.sh" ]; then
         echo "Create release script exists: ✅"
@@ -266,7 +266,7 @@ show_usage() {
 main() {
     local command=$1
     local option=$2
-    
+
     case $command in
         "generate")
             if [ -z "$option" ]; then

@@ -189,6 +189,7 @@ k8s/kubeconfig.yaml
 
 # IDE
 .idea/
+.serena/
 *.swp
 *.swo
 *~

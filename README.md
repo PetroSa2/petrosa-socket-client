@@ -46,7 +46,7 @@ A high-performance Binance WebSocket client designed for production cryptocurren
 │                                                                              │
 │  ┌────────────────────────────────────────────────────────────────────┐    │
 │  │                    Kubernetes (MicroK8s Cluster)                    │    │
-│  │  Namespace: petrosa-apps  │  NATS: nats-server.nats:4222          │    │
+│  │  Namespace: petrosa-apps  │  NATS message bus                  │    │
 │  │  Secrets: petrosa-sensitive-credentials                             │    │
 │  │  ConfigMaps: petrosa-common-config                                  │    │
 │  └────────────────────────────────────────────────────────────────────┘    │
@@ -1268,18 +1268,9 @@ reads them from `data-manager /data/candles`.
 
 Core documentation (kept up-to-date):
 - `README.md` - Project overview and quick start
-- `QUICK_REFERENCE.md` - Common commands and workflows
-- `MANUAL_DEPLOYMENT_GUIDE.md` - Production deployment
-- `CI_CD_PIPELINE.md` - CI/CD reference
-- `TESTING.md` - Testing procedures
-- `MAKEFILE.md` - Makefile commands
-
-Archive:
-- `docs/archive/` - Historical documentation for reference only
-  - `docs/archive/summaries/` - Implementation and feature summaries
-  - `docs/archive/fixes/` - Bug fix and resolution reports
-  - `docs/archive/investigations/` - Temporary analysis and diagnostic docs
-  - `docs/archive/migrations/` - Migration and upgrade documentation
+- `AGENTS.md` - Repository rules and verification commands
+- `Makefile` - Development, test and deployment targets
+- `scripts/README.md` - Utility script reference
 
 ---
 
@@ -1321,9 +1312,8 @@ make k8s-logs
 ## 📚 Additional Documentation
 
 - [OpenTelemetry Installation Guide](docs/OTEL_INSTALLATION_GUIDE.md)
-- [Repository Setup Guide](docs/archive/REPOSITORY_SETUP_GUIDE.md)
-- [Deployment Guide](docs/MANUAL_DEPLOYMENT_GUIDE.md)
-- [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+- [NATS Messaging](docs/NATS_MESSAGING.md)
+- [Single Replica Architecture](docs/SINGLE_REPLICA_ARCHITECTURE.md)
 
 ---
 
