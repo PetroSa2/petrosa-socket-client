@@ -1,10 +1,11 @@
 # Scripts Directory
 
-This directory contains utility scripts for the Petrosa Binance Data Extractor.
+This directory contains utility scripts for the Petrosa socket client.
 
-## 📚 Setup References
-- **[Repository Setup Guide](../docs/archive/REPOSITORY_SETUP_GUIDE.md)** - Complete setup and configuration guide
-- **[Quick Reference Card](../docs/QUICK_REFERENCE.md)** - Essential commands and troubleshooting
+## Documentation
+
+- [Repository instructions](../AGENTS.md) - Commands and repository policy
+- [Project overview](../README.md) - Service architecture and quick start
 
 ## 🔧 Available Scripts
 
@@ -22,7 +23,7 @@ This directory contains utility scripts for the Petrosa Binance Data Extractor.
 - `create-release.sh` - Creates new releases
 - `encode_secrets.py` - Encodes secrets for Kubernetes
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Setup development environment
@@ -31,13 +32,6 @@ This directory contains utility scripts for the Petrosa Binance Data Extractor.
 # Deploy locally
 ./scripts/deploy-local.sh
 
-# Test connection
-kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
+# Run the local test suite
+make unit
 ```
-
-## 💡 Important Notes
-
-- This repository uses **local MicroK8s cluster**, not AWS EKS
-- Always use `kubectl --kubeconfig=k8s/kubeconfig.yaml` for cluster operations
-- For port forwarding: `kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward`
-- See [Quick Reference](../docs/QUICK_REFERENCE.md) for common commands

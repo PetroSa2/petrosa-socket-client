@@ -69,12 +69,9 @@ spec:
 - Removed HPA from Kubernetes cluster
 - Updated documentation to remove HPA references
 
-### 3. Documentation Updates
-Updated the following files:
-- `README.md` - Added note about single replica design
-- `docs/SERVICE_SUMMARY.md` - Updated deployment features
-- `docs/CURSOR_AI_VERSION_RULES.md` - Removed hpa.yaml reference
-- `docs/VERSION_PLACEHOLDER_GUIDE.md` - Removed hpa.yaml reference
+### 3. Documentation
+The repository's current deployment and verification commands are maintained in `AGENTS.md`
+and the root `Makefile`.
 
 ## Production Verification
 
@@ -159,4 +156,3 @@ The socket client is now properly configured as a single-instance WebSocket clie
 
 **Last Updated**: October 15, 2025
 **Status**: Implemented and verified in production
-

@@ -44,7 +44,7 @@ for file in $STAGED_FILES; do
     # Only check YAML files in k8s directory
     if [[ "$file" == k8s/*.yaml ]] || [[ "$file" == k8s/*.yml ]]; then
         print_status "Checking $file..."
-        
+
         # Check if VERSION_PLACEHOLDER was removed or changed
         if git diff --cached "$file" | grep -q "^-.*VERSION_PLACEHOLDER"; then
             print_error "❌ VERSION_PLACEHOLDER was removed or changed in $file"
@@ -52,7 +52,7 @@ for file in $STAGED_FILES; do
             print_error "   The CI/CD pipeline will handle version replacement automatically."
             ERRORS_FOUND=$((ERRORS_FOUND + 1))
         fi
-        
+
         # Check if a specific version was added instead of VERSION_PLACEHOLDER
         if git diff --cached "$file" | grep -q "^+.*yurisa2/petrosa.*:v[0-9]"; then
             print_error "❌ Specific version detected in $file"
@@ -60,7 +60,7 @@ for file in $STAGED_FILES; do
             print_error "   The CI/CD pipeline will handle version replacement automatically."
             ERRORS_FOUND=$((ERRORS_FOUND + 1))
         fi
-        
+
         # Check if "latest" was added instead of VERSION_PLACEHOLDER
         if git diff --cached "$file" | grep -q "^+.*yurisa2/petrosa.*:latest"; then
             print_error "❌ 'latest' tag detected in $file"
